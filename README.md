@@ -1,6 +1,9 @@
 # Generalized Contrastive Learning for Multi-Modal Retrieval and Ranking
 This is a Repository for Marqo-GS-10M multi-modal fine-grained ranking dataset and benchmark followed by our novel training framework: Generalized Contrastive Learning (GCL).
 
+**Released Content**: 1) Full Dataset, 2) Evaluation Code and Benchmarks, 3) Models Finetuned by Marqo GCL.
+
+**Release WIP**: GCL Training Framework.
 ## Motivation
 Contrastive learning has gained widespread adoption for retrieval tasks due to its minimal requirement for manual annotations. However, popular contrastive frameworks typically learn from binary relevance, making them ineffective at incorporating direct fine-grained rankings. 
 
@@ -27,6 +30,8 @@ which are used for computing contrastive losses, ensuring that pairs with higher
 <img src="docs/ms1.png" alt="multi split visual" width="500"/>
 
 ### Dataset Visualization
+Visualization of the collected triplet dataset containing search queries (top row), 
+documents and scores, showcasing thumbnails of returned products with scores that decrease linearly according to their positions.
 ![Dataset Qualitative](docs/visual_dataset_4.png)
 
 
