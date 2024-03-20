@@ -24,8 +24,7 @@ which are used for computing contrastive losses, ensuring that pairs with higher
 
 ### Multi-Split 
 
-
-![Multi-Split Visual](docs/ms1.png)
+<img src="docs/ms1.png" alt="multi split visual" width="500"/>
 
 ### Dataset Visualization
 ![Dataset Qualitative](docs/visual_dataset_4.png)
