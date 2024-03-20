@@ -1,5 +1,6 @@
 data_root="/path"
 model_root="/path"
+model_ckpt="/path/model.pth"
 
 rm -rf $model_root/VITB32-Pretrain
 
@@ -11,7 +12,7 @@ python evals/eval_gs_v1.py \
       --doc-meta $data_root/marqo-gs-dataset/marqo_gs_wfash_1m/corpus_1.json \
       --weight_key "score_linear" \
       --output-dir $model_root/VITB32-Pretrain/eval_train_e20 \
-      --pretrained laion2b_s34b_b79k\
+      --pretrained $model_ckpt \
       --batch-size 1024 \
       --num_workers 4 \
       --left-key "['query']" \
@@ -29,7 +30,7 @@ python evals/eval_gs_v1.py \
       --doc-meta $data_root/marqo-gs-dataset/marqo_gs_wfash_1m/corpus_2.json \
       --weight_key "score_linear" \
       --output-dir $model_root/VITB32-Pretrain/eval_q0d1_e20 \
-      --pretrained laion2b_s34b_b79k\
+      --pretrained $model_ckpt \
       --batch-size 1024 \
       --num_workers 4 \
       --left-key "['query']" \
@@ -47,7 +48,7 @@ python evals/eval_gs_v1.py \
       --doc-meta $data_root/marqo-gs-dataset/marqo_gs_wfash_1m/corpus_1.json \
       --weight_key "score_linear" \
       --output-dir $model_root/VITB32-Pretrain/eval_q1d0_e20 \
-      --pretrained laion2b_s34b_b79k\
+      --pretrained $model_ckpt \
       --batch-size 1024 \
       --num_workers 4 \
       --left-key "['query']" \
@@ -65,7 +66,7 @@ python evals/eval_gs_v1.py \
       --doc-meta $data_root/marqo-gs-dataset/marqo_gs_wfash_1m/corpus_2.json \
       --weight_key "score_linear" \
       --output-dir $model_root/VITB32-Pretrain/eval_q1d1_e20 \
-      --pretrained laion2b_s34b_b79k\
+      --pretrained $model_ckpt \
       --batch-size 1024 \
       --num_workers 4 \
       --left-key "['query']" \
