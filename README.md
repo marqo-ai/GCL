@@ -2,7 +2,8 @@
 This is the repository for **Marqo-GS-10M** (a multi-modal fine-grained ranking dataset),
 followed by our novel training framework: Generalized Contrastive Learning (GCL).
 
-**This work aims to improve and measure the ranking performance of information retrieval models.**
+This work aims to improve and measure the **ranking** performance of information retrieval models, 
+especially for retrieving relevant **products** given a search query.
 
 **Released Content**: 1) Full Dataset, 2) Evaluation Code and Benchmarks, 3) Models Finetuned by Marqo GCL.
 
