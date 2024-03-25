@@ -13,7 +13,7 @@ Subsequently, we propose Generalized Contrastive Learning for Multi-Modal Retrie
 
 Our results show that GCL achieves a **94.5%** increase in NDCG@10 for in-domain and **26.3** to **48.8%** increases for cold-start evaluations, measured **relative** to the CLIP baseline within our curated ranked dataset.
 
-## Install and 
+## Using the GCL Benchmarks
 ### Install environment
 ```bash
 conda create -n gcl python=3.8
