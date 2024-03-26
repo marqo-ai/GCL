@@ -77,7 +77,7 @@ documents and scores, showcasing thumbnails of returned products with scores tha
 The Marqo-GS-10M dataset is available for direct download. This dataset is pivotal for training and benchmarking in Generalized Contrastive Learning (GCL) frameworks and other multi-modal fine-grained ranking tasks.
 
 - **Full Dataset**: [Download](https://marqo-gcl-public.s3.amazonaws.com/v1/marqo-gs-dataset.tar) - Link contains the entire Marqo-GS-10M dataset except for the images. 
-- **Full Images**: [Download](https://marqo-gcl-public.s3.amazonaws.com/v1/images_archive.tar) - Link contains the entire Marqo-GS-10M dataset except for the images.
+- **Full Images**: [Download](https://marqo-gcl-public.s3.amazonaws.com/v1/images_archive.tar) - Link contains the images of the entire Marqo-GS-10M dataset.
 - **Sample Images**: [Download](https://marqo-gcl-public.s3.amazonaws.com/v1/images_wfash.tar) - Link contains the images for woman fashion category, it corresponds to the woman fashion sub-dataset. 
 
 ## Results and Model Downloads
@@ -89,3 +89,29 @@ Retrieval and ranking performance comparison of GCL versus publicly available co
 | CLIP          | ViTL14   | 0.310     | 0.093     | 0.252     | [model](https://marqo-gcl-public.s3.us-west-2.amazonaws.com/v1/clip-vitl14-110-gs-full.pt) |
 | GCL (ours)    | ViTB32   | 0.577     | 0.554     | 0.446     | [model](https://marqo-gcl-public.s3.us-west-2.amazonaws.com/v1/gcl-vitb32-117-gs-full.pt)  | 
 | GCL (ours)    | ViTL14   | **0.603** | **0.562** | **0.467** | [model](https://marqo-gcl-public.s3.us-west-2.amazonaws.com/v1/gcl-vitl14-120-gs-full.pt)  | 
+
+### Quick Demo with OpenCLIP
+Here is a quick example to use our model if you have installed open_clip_torch. 
+
+```bash
+import torch
+from PIL import Image
+import open_clip
+
+model, _, preprocess = open_clip.create_model_and_transforms('ViT-B-32', pretrained='laion2b_s34b_b79k')
+# model, _, preprocess = open_clip.create_model_and_transforms('ViT-B-32', pretrained='/path/to/downloaded/VITB32.pt')
+tokenizer = open_clip.get_tokenizer('ViT-B-32')
+
+image = preprocess(Image.open('docs/oxford_shoe.png')).unsqueeze(0)
+text = tokenizer(["a dog", "Vintage Style Women's Oxfords", "a cat"])
+logit_scale = 10
+with torch.no_grad(), torch.cuda.amp.autocast():
+    image_features = model.encode_image(image)
+    text_features = model.encode_text(text)
+    image_features /= image_features.norm(dim=-1, keepdim=True)
+    text_features /= text_features.norm(dim=-1, keepdim=True)
+
+    text_probs = (logit_scale * image_features @ text_features.T).softmax(dim=-1)
+
+print("Label probs:", text_probs)
+```
