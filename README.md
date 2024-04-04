@@ -205,8 +205,8 @@ scores = (embeddings[:2] @ embeddings[2:].T) * 100
 print(scores.tolist())
 ```
 
-### Using VITB32/VITL14 with **marqo** vector search. 
-Using model download url
+### Using VITB32/VITL14/E5 with **marqo** vector search. 
+Using model download url for VIT models
 ```python
 import marqo
 # create an index with your custom model
@@ -225,7 +225,7 @@ settings = {
 
 response = mq.create_index("my-own-clip", settings_dict=settings)
 ```
-Using Hugging Face
+Using Hugging Face for our finetuned E5 models
 ```python
 import marqo
 # create an index with your custom model
