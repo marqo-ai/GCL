@@ -29,7 +29,7 @@ Our results show that GCL achieves a **94.5%** increase in NDCG@10 for in-domain
 ## 2. Dataset and Benchmarks
 
 ### Dataset Structure
-<img src="docs/ms1.png" alt="multi split visual" width="500"/>
+<img src="assets/ms1.png" alt="multi split visual" width="500"/>
 
 Illustration of multi-dimensional split along both query and document dimensions resulting in 4 splits: 
 training split with 80\% of queries and 50\% of documents, novel query splitwith the other 20\% of queries and the same documents as the training split, 
@@ -81,7 +81,7 @@ The Marqo-GS-10M dataset is available for direct download. This dataset is pivot
 ### Dataset Visualization
 Visualization of the collected triplet dataset containing search queries (top row), 
 documents and scores, showcasing thumbnails of returned products with scores that decrease linearly according to their positions.
-![Dataset Qualitative](docs/visual_dataset_4.png)
+![Dataset Qualitative](assets/visual_dataset_4.png)
 
 
 ## 3. Instructions to use the GCL Benchmarks
@@ -112,7 +112,7 @@ bash ./scripts/eval-vitb32-ckpt.sh
 
 
 ## 4. GCL Training Framework and Models
-![Main Figure](docs/main_figure1.png)
+![Main Figure](assets/main_figure1.png)
 Overview of our Generalized Contrastive Learning (GCL) approach. 
 GCL integrates ranking information alongside multiple input fields for each sample (e.g., title and image) 
 across both left-hand-side (LHS) and right-hand-side (RHS). 
@@ -144,18 +144,22 @@ Retrieval and ranking performance comparison of GCL versus publicly available co
 
 ## 5. Example Usage of Models
 ### Quick Demo with OpenCLIP
-Here is a quick example to use our model if you have installed open_clip_torch. 
-
+Here is a quick example to use our model if you have installed open_clip_torch.
+```bash
+python demos/openclip_demo.py 
+```
 ```python
 import torch
 from PIL import Image
 import open_clip
+import wget
 
-model, _, preprocess = open_clip.create_model_and_transforms('ViT-B-32', pretrained='laion2b_s34b_b79k')
-# model, _, preprocess = open_clip.create_model_and_transforms('ViT-B-32', pretrained='/path/to/downloaded/VITB32.pt')
+model_url = "https://marqo-gcl-public.s3.us-west-2.amazonaws.com/v1/gcl-vitb32-117-gs-full-states.pt"
+wget.download(model_url, "gcl-vitb32-117-gs-full-states.pt")
+model, _, preprocess = open_clip.create_model_and_transforms('ViT-B-32', pretrained='gcl-vitb32-117-gs-full-states.pt')
 tokenizer = open_clip.get_tokenizer('ViT-B-32')
 
-image = preprocess(Image.open('docs/oxford_shoe.png')).unsqueeze(0)
+image = preprocess(Image.open('assets/oxford_shoe.png')).unsqueeze(0)
 text = tokenizer(["a dog", "Vintage Style Women's Oxfords", "a cat"])
 logit_scale = 10
 with torch.no_grad(), torch.cuda.amp.autocast():
