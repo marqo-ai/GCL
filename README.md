@@ -13,7 +13,7 @@ especially for retrieving relevant **products** given a search query.
 2. Dataset and Benchmarks
 3. Instructions to evaluate with the GCL Benchmarks
 4. GCL Training Framwork and Models
-5. Quick Demos
+5. Example Usage of Models
 
 
 ## 1. Motivation
@@ -142,7 +142,7 @@ Retrieval and ranking performance comparison of GCL versus publicly available co
 | GCL (ours)    | xlm-roberta-base-ViT-B-32  | **0.441** | **0.404** | **0.355** | [model](https://marqo-gcl-public.s3.us-west-2.amazonaws.com/v1/gcl-robbxlm-105-gs-full-states.pt) |
 
 
-## 5. Quick Demos
+## 5. Example Usage of Models
 ### Quick Demo with OpenCLIP
 Here is a quick example to use our model if you have installed open_clip_torch. 
 
@@ -168,6 +168,43 @@ with torch.no_grad(), torch.cuda.amp.autocast():
 
 print("Label probs:", text_probs)
 ```
+### Quick Demo with hungging face E5 models. 
+Here is a quick example to load our finetuned e5 text models from hugging face directly. 
+```bash
+import torch.nn.functional as F
+
+from torch import Tensor
+from transformers import AutoTokenizer, AutoModel
+
+
+def average_pool(last_hidden_states: Tensor,
+                 attention_mask: Tensor) -> Tensor:
+    last_hidden = last_hidden_states.masked_fill(~attention_mask[..., None].bool(), 0.0)
+    return last_hidden.sum(dim=1) / attention_mask.sum(dim=1)[..., None]
+
+
+# Each input text should start with "query: " or "passage: ".
+# For tasks other than retrieval, you can simply use the "query: " prefix.
+input_texts = ['query: Espresso Pitcher with Handle',
+               'query: Women’s designer handbag sale',
+               "passage: Dianoo Espresso Steaming Pitcher, Espresso Milk Frothing Pitcher Stainless Steel",
+               "passage: Coach Outlet Eliza Shoulder Bag - Black - One Size"]
+
+tokenizer = AutoTokenizer.from_pretrained('Marqo/gcl-e5-large-v2-113-gs-full')
+model_new = AutoModel.from_pretrained('Marqo/gcl-e5-large-v2-113-gs-full')
+
+# Tokenize the input texts
+batch_dict = tokenizer(input_texts, max_length=512, padding=True, truncation=True, return_tensors='pt')
+
+outputs = model_new(**batch_dict)
+embeddings = average_pool(outputs.last_hidden_state, batch_dict['attention_mask'])
+
+# normalize embeddings
+embeddings = F.normalize(embeddings, p=2, dim=1)
+scores = (embeddings[:2] @ embeddings[2:].T) * 100
+print(scores.tolist())
+```
+
 
 ## Citation
 To be added. 
