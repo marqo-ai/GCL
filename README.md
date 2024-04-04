@@ -146,7 +146,7 @@ Retrieval and ranking performance comparison of GCL versus publicly available co
 ### Quick Demo with OpenCLIP
 Here is a quick example to use our model if you have installed open_clip_torch. 
 
-```bash
+```python
 import torch
 from PIL import Image
 import open_clip
@@ -170,7 +170,7 @@ print("Label probs:", text_probs)
 ```
 ### Quick Demo with hungging face E5 models. 
 Here is a quick example to load our finetuned e5 text models from hugging face directly. 
-```bash
+```python
 import torch.nn.functional as F
 
 from torch import Tensor
@@ -194,7 +194,7 @@ tokenizer = AutoTokenizer.from_pretrained('Marqo/gcl-e5-large-v2-113-gs-full')
 model_new = AutoModel.from_pretrained('Marqo/gcl-e5-large-v2-113-gs-full')
 
 # Tokenize the input texts
-batch_dict = tokenizer(input_texts, max_length=512, padding=True, truncation=True, return_tensors='pt')
+batch_dict = tokenizer(input_texts, max_length=77, padding=True, truncation=True, return_tensors='pt')
 
 outputs = model_new(**batch_dict)
 embeddings = average_pool(outputs.last_hidden_state, batch_dict['attention_mask'])
@@ -205,6 +205,39 @@ scores = (embeddings[:2] @ embeddings[2:].T) * 100
 print(scores.tolist())
 ```
 
+### Using VITB32/VITL14 with **marqo** vector search. 
+Using model download url
+```python
+import marqo
+# create an index with your custom model
+mq = marqo.Client(url='http://localhost:8882')
+settings = {
+    "treatUrlsAndPointersAsImages": True,
+    "model": "generic-clip-test-model-1",
+    "modelProperties": {
+        "name": "ViT-B-32",
+        "dimensions": 512,
+        "url": "https://marqo-gcl-public.s3.us-west-2.amazonaws.com/v1/gcl-vitb32-117-gs-full-states.pt",
+        "type": "open_clip",
+    },
+    "normalizeEmbeddings": True,
+}
+
+response = mq.create_index("my-own-clip", settings_dict=settings)
+```
+Using Hugging Face
+```python
+import marqo
+# create an index with your custom model
+mq = marqo.Client(url='http://localhost:8882')
+model_properties = {
+    "name": "Marqo/gcl-e5-large-v2-113-gs-full",
+    "dimensions": 1024,
+    "type": "hf"
+}
+
+mq.create_index("test_e5", model="my_custom_e5", model_properties=model_properties)
+```
 
 ## Citation
 To be added. 
