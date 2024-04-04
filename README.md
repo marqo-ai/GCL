@@ -148,6 +148,7 @@ Here is a quick example to use our model if you have installed open_clip_torch.
 ```bash
 python demos/openclip_demo.py 
 ```
+or
 ```python
 import torch
 from PIL import Image
