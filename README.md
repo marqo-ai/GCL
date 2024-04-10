@@ -175,7 +175,7 @@ with torch.no_grad(), torch.cuda.amp.autocast():
 
 print("Label probs:", text_probs)
 ```
-### Quick Demo with hungging face E5 models. 
+### Quick Demo with Hugging Face for E5 models. 
 Here is a quick example to load our finetuned e5 text models from hugging face directly. 
 ```python
 import torch.nn.functional as F
