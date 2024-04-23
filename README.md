@@ -211,7 +211,7 @@ embeddings = F.normalize(embeddings, p=2, dim=1)
 scores = (embeddings[:2] @ embeddings[2:].T) * 100
 print(scores.tolist())
 ```
-
+<!---
 ### Using VITB32/VITL14/E5 with **marqo** vector search. 
 Using model download url for VIT models
 ```python
@@ -245,6 +245,6 @@ model_properties = {
 
 mq.create_index("test_e5", model="my_custom_e5", model_properties=model_properties)
 ```
-
+-->
 ## Citation
 To be added. 
