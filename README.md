@@ -246,5 +246,15 @@ model_properties = {
 mq.create_index("test_e5", model="my_custom_e5", model_properties=model_properties)
 ```
 -->
+
 ## Citation
-To be added. 
+```
+@misc{zhu2024generalized,
+      title={Generalized Contrastive Learning for Multi-Modal Retrieval and Ranking}, 
+      author={Tianyu Zhu and Myong Chol Jung and Jesse Clark},
+      year={2024},
+      eprint={2404.08535},
+      archivePrefix={arXiv},
+      primaryClass={cs.IR}
+}
+```
