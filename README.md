@@ -1,6 +1,10 @@
 # Generalized Contrastive Learning for Multi-Modal Retrieval and Ranking
 This is the repository for **Marqo-GS-10M** (a multi-modal fine-grained ranking dataset),
-followed by our novel training framework: Generalized Contrastive Learning (GCL). Paper [here](https://arxiv.org/pdf/2404.08535.pdf).
+followed by our novel training framework: Generalized Contrastive Learning (GCL). 
+
+Blog post: https://www.marqo.ai/blog/generalized-contrastive-learning-for-multi-modal-retrieval-and-ranking
+
+Paper: https://arxiv.org/pdf/2404.08535.pdf
 
 This work aims to improve and measure the **ranking** performance of information retrieval models, 
 especially for retrieving relevant **products** given a search query.
