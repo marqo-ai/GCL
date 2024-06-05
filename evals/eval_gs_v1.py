@@ -8,7 +8,6 @@ import open_clip
 import pytrec_eval
 from beir.retrieval.evaluation import EvaluateRetrieval
 import logging
-from weighted_training.utils import process_multi_modal_args
 from eval_dataset_loader import MFRightEvalDataset
 from torch.utils.data import DataLoader
 from torch.nn import functional as F
@@ -19,6 +18,26 @@ from collections import Counter
 from scipy.stats import entropy, wasserstein_distance
 from time import perf_counter
 import pdb
+
+
+def process_multi_modal_args(args):
+    args.left_keys = eval(args.left_keys)
+    args.right_keys = eval(args.right_keys)
+    args.left_weights = eval(args.left_weights)
+    args.right_weights = eval(args.right_weights)
+    args.img_or_txt = eval(args.img_or_txt)
+    args.context_length = eval(args.context_length)
+    try:
+        args.id_keys = eval(args.id_keys)
+    except AttributeError:
+        print("AttributeError: 'Namespace' object has no attribute 'id_keys'")
+    assert len(args.left_weights) == len(args.left_keys)
+    assert len(args.right_weights) == len(args.right_keys)
+    assert len(args.img_or_txt[0]) == len(args.left_keys)
+    assert len(args.img_or_txt[1]) == len(args.right_keys)
+    assert len(args.img_or_txt[0]) == len(args.context_length[0])
+    assert len(args.img_or_txt[1]) == len(args.context_length[1])
+    return
 
 
 def calculate_individual_err(qrels, retrieved_results):
