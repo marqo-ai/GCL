@@ -1,6 +1,10 @@
 # Generalized Contrastive Learning for Multi-Modal Retrieval and Ranking
 This is the repository for **Marqo-GS-10M** (a multi-modal fine-grained ranking dataset),
-followed by our novel training framework: Generalized Contrastive Learning (GCL).
+followed by our novel training framework: Generalized Contrastive Learning (GCL). 
+
+Blog post: https://www.marqo.ai/blog/generalized-contrastive-learning-for-multi-modal-retrieval-and-ranking
+
+Paper: https://arxiv.org/pdf/2404.08535.pdf
 
 This work aims to improve and measure the **ranking** performance of information retrieval models, 
 especially for retrieving relevant **products** given a search query.
@@ -211,7 +215,7 @@ embeddings = F.normalize(embeddings, p=2, dim=1)
 scores = (embeddings[:2] @ embeddings[2:].T) * 100
 print(scores.tolist())
 ```
-
+<!---
 ### Using VITB32/VITL14/E5 with **marqo** vector search. 
 Using model download url for VIT models
 ```python
@@ -245,6 +249,16 @@ model_properties = {
 
 mq.create_index("test_e5", model="my_custom_e5", model_properties=model_properties)
 ```
+-->
 
 ## Citation
-To be added. 
+```
+@misc{zhu2024generalized,
+      title={Generalized Contrastive Learning for Multi-Modal Retrieval and Ranking}, 
+      author={Tianyu Zhu and Myong Chol Jung and Jesse Clark},
+      year={2024},
+      eprint={2404.08535},
+      archivePrefix={arXiv},
+      primaryClass={cs.IR}
+}
+```
