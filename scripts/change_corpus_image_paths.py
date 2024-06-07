@@ -1,8 +1,9 @@
 import json
 import os
+import sys
 
-corpus_path = "/MarqoData/google_shopping/marqo-gs-dataset/marqo_gs_wfash_1m/corpus_1.json"
-image_dir = "/MarqoData/google_shopping/images_wfash"
+corpus_path = sys.argv[1]
+image_dir = sys.argv[2]
 
 with open(corpus_path, "r") as f:
     corpus = json.load(f)
