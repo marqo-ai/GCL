@@ -25,7 +25,7 @@ def update_csv_files(root_dir, img_dir):
                 try:
                     df = pd.read_csv(full_path)
                     if 'image_local' in df.columns:
-                        df['image_local'] = df['image_local'].apply(lambda x: os.path.join(img_dir, x))
+                        df['image_local'] = df['image_local'].apply(lambda x: os.path.join(img_dir, os.path.basename(x)))
                         df.to_csv(full_path, index=False, quoting=csv.QUOTE_ALL)
                         updated_files += 1
                         print(f"Updated file ({updated_files}/{total_files}): {full_path}")
