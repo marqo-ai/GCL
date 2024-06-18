@@ -1,3 +1,4 @@
+import sys
 import torch
 import argparse
 import json
@@ -5,10 +6,9 @@ import os
 from tqdm import tqdm
 import pandas as pd
 import open_clip
-import pytrec_eval
 from beir.retrieval.evaluation import EvaluateRetrieval
 import logging
-from eval_dataset_loader import MFRightEvalDataset
+from .eval_dataset_loader import MFRightEvalDataset
 from torch.utils.data import DataLoader
 from torch.nn import functional as F
 # import concurrent
@@ -27,10 +27,6 @@ def process_multi_modal_args(args):
     args.right_weights = eval(args.right_weights)
     args.img_or_txt = eval(args.img_or_txt)
     args.context_length = eval(args.context_length)
-    try:
-        args.id_keys = eval(args.id_keys)
-    except AttributeError:
-        print("AttributeError: 'Namespace' object has no attribute 'id_keys'")
     assert len(args.left_weights) == len(args.left_keys)
     assert len(args.right_weights) == len(args.right_keys)
     assert len(args.img_or_txt[0]) == len(args.left_keys)
@@ -114,7 +110,7 @@ def calculate_mean_rbp(qrels, retrieved_results, p=0.9):
 logging.basicConfig(format='%(message)s', level=logging.INFO)
 
 
-def calc_all_features_mf(model, doc_meta_list, preprocess, args):
+def calc_all_features_mf(model_name, model, doc_meta_list, preprocess, args):
     all_features = []
     tokenizer = open_clip.get_tokenizer(model_name)
     mmevaldataset = MFRightEvalDataset(doc_meta_list, tokenizer, preprocess, args)
@@ -199,8 +195,7 @@ def _run_queries(test_queries, doc_ids_all, all_features, tokenizer, model, k, a
     return results
 
 
-if __name__ == "__main__":
-
+def run_eval(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument("--test_csv", type=str, default=None)
     parser.add_argument("--doc-meta", type=str, default=None)
@@ -229,7 +224,7 @@ if __name__ == "__main__":
 
 
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     if not os.path.exists(args.output_dir):
         os.mkdir(args.output_dir)
@@ -278,7 +273,7 @@ if __name__ == "__main__":
             doc_meta_list.append(doc_meta[key])
 
         if not os.path.isfile(args.features_path) or args.overwrite_feature:
-            all_features = calc_all_features_mf(model, doc_meta_list, preprocess, args)
+            all_features = calc_all_features_mf(model_name, model, doc_meta_list, preprocess, args)
             torch.save(all_features, args.features_path)
         else:
             all_features = torch.load(args.features_path)
@@ -354,3 +349,9 @@ if __name__ == "__main__":
 
     with open(args.output_json, 'w') as f:
         json.dump(output_results, f)
+
+    return output_results
+
+
+if __name__ == "__main__":
+    run_eval(sys.argv[1:])
