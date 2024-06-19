@@ -1,0 +1,60 @@
+name: Reusable ECR push workflow
+# this workflow is not meant to be run directly, it is meant to be called by other workflows
+
+on:
+  workflow_call:
+    inputs:
+      AWS_ACCOUNT_ID:
+        required: true
+        type: string
+      AWS_REGION:
+        required: true
+        type: string
+      DEV_CELL_SUFFIX:
+        required: false
+        type: string
+
+
+env:
+  ROLE_NAME: "git-GCL"
+  ECR_REPO_NAME: "gcl"
+
+
+jobs:
+  # this job will build and push the docker image to ECR based on the matrix.environment value
+  push-docker-image-to-ecr:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Set environment variables
+        # this step sets the ROLE_NAME and ECR_REPO_NAME based on the environment, if the environment is DEV
+        # then it will append the supplied dev_suffix.
+        run: |
+            if [[ -n "${{ inputs.DEV_CELL_SUFFIX }}" ]]; then
+              echo "ROLE_NAME=${{ env.ROLE_NAME }}-${{ inputs.DEV_CELL_SUFFIX }}" >> $GITHUB_ENV
+              echo "ECR_REPO_NAME=${{ env.ECR_REPO_NAME }}-${{ inputs.DEV_CELL_SUFFIX }}" >> $GITHUB_ENV
+            fi
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials from OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ inputs.AWS_ACCOUNT_ID }}:role/${{ env.ROLE_NAME }}
+          aws-region: ${{ inputs.AWS_REGION }}
+
+      - name: Log in to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push Docker image to ECR
+        run: |
+          docker build -t ${{ env.ECR_REPO_NAME }}:latest .
+          docker tag ${{ env.ECR_REPO_NAME }}:latest ${{ inputs.AWS_ACCOUNT_ID }}.dkr.ecr.${{ inputs.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPO_NAME }}:latest
+          docker push ${{ inputs.AWS_ACCOUNT_ID }}.dkr.ecr.${{ inputs.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPO_NAME }}:latest
+          IMAGE_ID=$(docker images -q ${{ env.ECR_REPO_NAME }}:latest)
+          echo "Printing the image id to the output for debugging purposes: $IMAGE_ID"

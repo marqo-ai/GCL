@@ -1,0 +1,25 @@
+name: Docker Build - Staging
+
+on:
+    # uncomment when we fix tests:
+    # this job runs after a succesful run of the Tests workflow that been triggered by a push event:
+    # workflow_run:
+    #     workflows: ["Tests"]
+    #     types:
+    #       - completed
+
+    # but we can also trigger it manually:
+    workflow_dispatch:
+
+
+jobs:
+    call-reusable-workflow:
+# uncomment when we fix tests:
+#       if: ${{ github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push') }}
+        uses: ./.github/workflows/docker-build-abstract.yml
+        with:
+            AWS_REGION: "us-east-1"
+            AWS_ACCOUNT_ID: "975050354766"
+        permissions:
+            id-token: write
+            contents: read

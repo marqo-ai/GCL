@@ -1,0 +1,14 @@
+name: Docker Build - Production
+
+on:
+    workflow_dispatch
+
+jobs:
+    call-reusable-workflow:
+        uses: ./.github/workflows/docker-build-abstract.yml
+        with:
+            AWS_REGION: "us-east-1"
+            AWS_ACCOUNT_ID: "905418443936"
+        permissions:
+            id-token: write
+            contents: read
