@@ -8,7 +8,7 @@ import pandas as pd
 import open_clip
 from beir.retrieval.evaluation import EvaluateRetrieval
 import logging
-from .eval_dataset_loader import MFRightEvalDataset
+from eval_dataset_loader import MFRightEvalDataset
 from torch.utils.data import DataLoader
 from torch.nn import functional as F
 # import concurrent

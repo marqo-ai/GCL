@@ -3,7 +3,7 @@ import pytest
 import requests
 import tarfile
 import tempfile
-from evals.eval_gs_v1 import run_eval
+from eval_gs_v1 import run_eval
 
 s3_bucket_url = "https://marqo-gcl-public.s3.amazonaws.com/gcl-test-data/tiny-dataset"
 
