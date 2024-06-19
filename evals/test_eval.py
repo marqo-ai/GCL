@@ -1,11 +1,12 @@
+from eval_gs_v1 import run_eval
+from itertools import islice
 import os
 import pytest
 import requests
 import tarfile
 import tempfile
-from eval_gs_v1 import run_eval
 
-s3_bucket_url = "https://marqo-gcl-public.s3.amazonaws.com/gcl-test-data/tiny-dataset"
+s3_bucket_url = "https://marqo-gcl-public.s3.amazonaws.com/gcl-test-data/tiny-dataset/v1"
 
 @pytest.fixture(scope="session")
 def temp_dir():
@@ -31,6 +32,13 @@ def extract_tar(temp_dir, file_path):
         tar.extractall(path=temp_dir)
 
 
+# Print the first num_lines of a file
+def print_first_lines(file_path, num_lines):
+    with open(file_path, "r") as file:
+        for line in islice(file, num_lines):
+            print(line, end="")
+
+
 # Replace a target string with a replacement string in a text file (assumes the file is small enough to fit in memory)
 def replace_string_in_file(file_path, target_string, replacement_string):
     # Read the contents of the file
@@ -48,7 +56,7 @@ def replace_string_in_file(file_path, target_string, replacement_string):
 def test_csv_path(temp_dir):
     test_csv_path = download(temp_dir, f"{s3_bucket_url}/query_tiny.csv")
     # update image paths as GCL expects full paths
-    replace_string_in_file(test_csv_path, '","images/', f'","{temp_dir}/images/')
+    replace_string_in_file(test_csv_path, '/input/images/', f'{temp_dir}/images/')
     return test_csv_path
 
 
@@ -56,9 +64,7 @@ def test_csv_path(temp_dir):
 def doc_meta_path(temp_dir):
     doc_meta_path = download(temp_dir, f"{s3_bucket_url}/corpus_tiny.json")
     # update image paths as GCL expects full paths
-    replace_string_in_file(
-        doc_meta_path, '"image_local":"images/', f'"image_local": "{temp_dir}/images/'
-    )
+    replace_string_in_file(doc_meta_path, '/input/images/', f'{temp_dir}/images/')
     return doc_meta_path
 
 
@@ -73,6 +79,11 @@ def images_path(temp_dir):
 
 
 def test_run_eval( temp_dir, pretrained_path: str, test_csv_path: str, doc_meta_path: str, images_path: str):
+
+    # Print the first few lines of the files to verify they are formatted correctly
+    print_first_lines(test_csv_path, 3)
+    print_first_lines(doc_meta_path, 3)
+
     result = run_eval(["--model_name", "ViT-L-14",
             "--test_csv", test_csv_path,
             "--doc-meta", doc_meta_path,
@@ -88,6 +99,7 @@ def test_run_eval( temp_dir, pretrained_path: str, test_csv_path: str, doc_meta_
             "--right-weight", "[1]",
             "--context-length", "[[77], [0]]",
             "--top-q", "15"])
+
     # due to stochastic nature of the evaluation, we can't assert the exact values in the result so we'll just do
     # some basic checks:
     assert result, "The result should not be empty"
