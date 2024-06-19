@@ -1,0 +1,10 @@
+beir==2.0.0
+braceexpand==0.1.7
+numpy==1.23.2
+open_clip_torch==2.23.0
+pandas==2.2.2
+# pytorch-cuda==11.7
+pytrec-eval==0.5
+torch==1.13.1
+torchvision==0.14.1
+webdataset==0.2.86
