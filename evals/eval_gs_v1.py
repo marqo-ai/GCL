@@ -149,27 +149,27 @@ def load_model(model_name, pretrained):
     return model, preprocess, tokenizer
 
 
-def get_test_queries(df_test, top_q=2000, weight_key=None):
-    _df_temp_ = df_test[["query", weight_key]]
-    _df_temp_ = _df_temp_.groupby("query").sum()
+def get_test_queries(df_test, top_q=2000, weight_key=None, query_key="query"):
+    _df_temp_ = df_test[[query_key, weight_key]]
+    _df_temp_ = _df_temp_.groupby(query_key).sum()
     if top_q == -1:
-        top_q = len(df_test["query"].unique())
+        top_q = len(df_test[query_key].unique())
     sampled_data = _df_temp_.sample(n=top_q, weights=_df_temp_[weight_key], random_state=1, replace=False)
     sampled_data = sampled_data.sort_values(by=weight_key, ascending=False)
     test_queries = list(sampled_data.index)
     return test_queries
 
 
-def get_query_doc_id_mappings(df_test, test_queries):
-    # get the files associated with a query to create context
-    k_items_df = df_test.reset_index(drop=True).set_index('query')
-
-    # create a key mapping to the images list
-    query_ids_mapping = dict()
-    for query in tqdm(test_queries):
-        # Extract the first k items from each group
-        query_ids_mapping[query] = k_items_df.loc[[query]].to_dict(orient='records')
-    return query_ids_mapping
+# def get_query_doc_id_mappings(df_test, test_queries, query_key):
+#     # get the files associated with a query to create context
+#     k_items_df = df_test.reset_index(drop=True).set_index(query_key)
+#
+#     # create a key mapping to the images list
+#     query_ids_mapping = dict()
+#     for query in tqdm(test_queries):
+#         # Extract the first k items from each group
+#         query_ids_mapping[query] = k_items_df.loc[[query]].to_dict(orient='records')
+#     return query_ids_mapping
 
 
 def _run_queries(test_queries, doc_ids_all, all_features, tokenizer, model, k, args):
@@ -237,6 +237,7 @@ def run_eval(argv):
 
 
     process_multi_modal_args(args)
+    query_key = args.left_keys[0]
     args.context_length = args.context_length[0][0]
 
     if not args.metric_only:
@@ -254,12 +255,12 @@ def run_eval(argv):
 
         df_test[args.weight_key] = (((df_test[args.weight_key] - df_test[args.weight_key].min()) / (df_test[args.weight_key].max() - df_test[args.weight_key].min())) * 99 + 1).astype(int)
         # get the test queries
-        test_queries = get_test_queries(df_test, top_q=args.top_q, weight_key=args.weight_key)
+        test_queries = get_test_queries(df_test, top_q=args.top_q, weight_key=args.weight_key, query_key=query_key)
 
-        df_test.set_index("query")
+        df_test.set_index(query_key)
 
 
-        df_test = df_test.set_index('query')
+        df_test = df_test.set_index(query_key)
         df_test[args.doc_id_key] = df_test[args.doc_id_key].astype(str)
         df_test['key'] = df_test.index + df_test[args.doc_id_key]
 
