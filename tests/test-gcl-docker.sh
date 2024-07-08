@@ -97,11 +97,11 @@ docker run --rm -it --name $container_name --gpus all --ipc=host \
     --pretrained /models/model.pt \
     --batch-size 512 \
     --num_workers 2 \
-    --left-key "['query']" \
-    --right-key "['image_local']" \
+    --left-keys "['query']" \
+    --right-keys "['image_local']" \
     --img-or-txt "[['txt'], ['img']]" \
-    --left-weight "[1]" \
-    --right-weight "[1]" \
+    --left-weights "[1]" \
+    --right-weights "[1]" \
     --context-length "[[77], [0]]" \
     --top-q 15
 

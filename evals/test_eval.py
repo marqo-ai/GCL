@@ -92,11 +92,11 @@ def test_run_eval( temp_dir, pretrained_path: str, test_csv_path: str, doc_meta_
             "--pretrained", pretrained_path,
             "--batch-size", "512",
             "--num_workers", "2",
-            "--left-key", "['query']",
-            "--right-key", "['image_local']",
+            "--left-keys", "['query']",
+            "--right-keys", "['image_local']",
             "--img-or-txt", "[['txt'], ['img']]",
-            "--left-weight", "[1]",
-            "--right-weight", "[1]",
+            "--left-weights", "[1]",
+            "--right-weights", "[1]",
             "--context-length", "[[77], [0]]",
             "--top-q", "15"])
 
