@@ -14,11 +14,11 @@ python evals/eval_gs_v1.py \
       --pretrained laion2b_s34b_b79k\
       --batch-size 1024 \
       --num_workers 4 \
-      --left-key "['query']" \
-      --right-key "['image_local']" \
+      --left-keys "['query']" \
+      --right-keys "['image_local']" \
       --img-or-txt "[['txt'], ['img']]" \
-      --left-weight "[1]" \
-      --right-weight "[1]" \
+      --left-weights "[1]" \
+      --right-weights "[1]" \
       --context-length "[[77], [0]]" \
       --top-q 2000
 
@@ -32,11 +32,11 @@ python evals/eval_gs_v1.py \
       --pretrained laion2b_s34b_b79k\
       --batch-size 1024 \
       --num_workers 4 \
-      --left-key "['query']" \
-      --right-key "['image_local']" \
+      --left-keys "['query']" \
+      --right-keys "['image_local']" \
       --img-or-txt "[['txt'], ['img']]" \
-      --left-weight "[1]" \
-      --right-weight "[1]" \
+      --left-weights "[1]" \
+      --right-weights "[1]" \
       --context-length "[[77], [0]]" \
       --top-q 2000
 
@@ -50,11 +50,11 @@ python evals/eval_gs_v1.py \
       --pretrained laion2b_s34b_b79k\
       --batch-size 1024 \
       --num_workers 4 \
-      --left-key "['query']" \
-      --right-key "['image_local']" \
+      --left-keys "['query']" \
+      --right-keys "['image_local']" \
       --img-or-txt "[['txt'], ['img']]" \
-      --left-weight "[1]" \
-      --right-weight "[1]" \
+      --left-weights "[1]" \
+      --right-weights "[1]" \
       --context-length "[[77], [0]]" \
       --top-q 2000
 
@@ -68,11 +68,11 @@ python evals/eval_gs_v1.py \
       --pretrained laion2b_s34b_b79k\
       --batch-size 1024 \
       --num_workers 4 \
-      --left-key "['query']" \
-      --right-key "['image_local']" \
+      --left-keys "['query']" \
+      --right-keys "['image_local']" \
       --img-or-txt "[['txt'], ['img']]" \
-      --left-weight "[1]" \
-      --right-weight "[1]" \
+      --left-weights "[1]" \
+      --right-weights "[1]" \
       --context-length "[[77], [0]]" \
       --top-q 2000
 
@@ -80,4 +80,3 @@ python evals/eval_gs_v1.py \
 python evals/aggregate_results.py \
       --exp-path $model_root/VITB32-Pretrain \
       --evals "['eval_train_e20', 'eval_q0d1_e20', 'eval_q1d0_e20', 'eval_q1d1_e20']"
-
