@@ -24,23 +24,31 @@ class MMEvalDataset(Dataset):
 
 
 class MFRightEvalDataset(Dataset):
-    def __init__(self, doc_meta_list, tokenizer, preprocess, args):
+    def __init__(self, doc_meta_list, tokenizer, preprocess, args, side=0):
         self.img_or_txt = args.img_or_txt
 
-        self.right_inputs = [[doc[key] for key in args.right_keys] for doc in doc_meta_list]
+        if side == 0:
+            side_keys = args.left_keys
+            side_weights = args.left_weights
+        else:
+            side_keys = args.right_keys
+            side_weights = args.right_weights
 
-        self.right_weights = args.right_weights
+        self.right_inputs = [[doc[key] for key in side_keys] for doc in doc_meta_list]
+
+        self.right_weights = side_weights
         self.transforms = preprocess
 
         self.tokenize = tokenizer
         self.context_length = args.context_length
+        self.side = side
 
     def __len__(self):
         return len(self.right_inputs)
 
     def __getitem__(self, idx):
         rights = []
-        for j, cat in enumerate(self.img_or_txt[1]):
+        for j, cat in enumerate(self.img_or_txt[self.side]):
             if cat == "txt":
                 rights.append(self.tokenize([str(self.right_inputs[idx][j])], context_length=self.context_length)[0])
             else:
