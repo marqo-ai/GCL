@@ -207,7 +207,7 @@ def run_eval(argv):
     parser.add_argument("--query_ids_dict_path", type=str, default=None)
     parser.add_argument("--gt_results_path", type=str, default=None)
 
-    parser.add_argument("--context-length", type=str, default="[[77], [0, 77]]", help="context-length")
+    parser.add_argument("--context-length", type=str, default="[[0], [0, 0]]", help="context-length")
     parser.add_argument("--top-q", type=int, default=2000)
     parser.add_argument("--doc-id-key", type=str, default="product_id")
     parser.add_argument("--query-id-key", type=str, default=None)
@@ -228,6 +228,21 @@ def run_eval(argv):
 
 
     process_multi_modal_args(args)
+
+    # 1) If the there is context length from params, we should use that.
+    # 2) If it is default as 0, we should use the length in model cfg.
+    # 3) If there is no cfg and no param, use 77.
+    max_context_length = max(max(args.context_length[0]), max(args.context_length[0]))
+    if max_context_length == 0:
+        if 'context_length' in open_clip.factory._MODEL_CONFIGS[args.model]['text_cfg']:
+            max_context_length = open_clip.factory._MODEL_CONFIGS[args.model]['text_cfg']['context_length']
+        else:
+            max_context_length = 77
+    else:
+        open_clip.factory._MODEL_CONFIGS[args.model]['text_cfg']['context_length'] = max(max(args.context_length[0]), max(args.context_length[0]))
+    args.context_length = [[max_context_length] * len(sublist) for sublist in args.context_length]
+
+
     args.context_length = args.context_length[0][0]
 
     if not args.metric_only:
