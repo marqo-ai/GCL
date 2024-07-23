@@ -26,13 +26,18 @@ def process_multi_modal_args(args):
     args.left_weights = eval(args.left_weights)
     args.right_weights = eval(args.right_weights)
     args.img_or_txt = eval(args.img_or_txt)
-    args.context_length = eval(args.context_length)
+    try:
+        args.id_keys = eval(args.id_keys)
+    except AttributeError:
+        print("AttributeError: 'Namespace' object has no attribute 'id_keys'")
     assert len(args.left_weights) == len(args.left_keys)
     assert len(args.right_weights) == len(args.right_keys)
     assert len(args.img_or_txt[0]) == len(args.left_keys)
     assert len(args.img_or_txt[1]) == len(args.right_keys)
-    assert len(args.img_or_txt[0]) == len(args.context_length[0])
-    assert len(args.img_or_txt[1]) == len(args.context_length[1])
+    if args.context_length:
+        args.context_length = eval(args.context_length)
+        assert len(args.img_or_txt[0]) == len(args.context_length[0])
+        assert len(args.img_or_txt[1]) == len(args.context_length[1])
     return
 
 
@@ -207,7 +212,7 @@ def run_eval(argv):
     parser.add_argument("--query_ids_dict_path", type=str, default=None)
     parser.add_argument("--gt_results_path", type=str, default=None)
 
-    parser.add_argument("--context-length", type=str, default="[[0], [0, 0]]", help="context-length")
+    parser.add_argument("--context-length", type=str, default=None, help="context-length")
     parser.add_argument("--top-q", type=int, default=2000)
     parser.add_argument("--doc-id-key", type=str, default="product_id")
     parser.add_argument("--query-id-key", type=str, default=None)
@@ -232,15 +237,18 @@ def run_eval(argv):
     # 1) If the there is context length from params, we should use that.
     # 2) If it is default as 0, we should use the length in model cfg.
     # 3) If there is no cfg and no param, use 77.
-    max_context_length = max(max(args.context_length[0]), max(args.context_length[0]))
+    if args.context_length:
+        max_context_length = max(max(args.context_length[0]), max(args.context_length[1]))
+    else:
+        max_context_length = 0
     if max_context_length == 0:
         if 'context_length' in open_clip.factory._MODEL_CONFIGS[args.model]['text_cfg']:
             max_context_length = open_clip.factory._MODEL_CONFIGS[args.model]['text_cfg']['context_length']
         else:
             max_context_length = 77
     else:
-        open_clip.factory._MODEL_CONFIGS[args.model]['text_cfg']['context_length'] = max(max(args.context_length[0]), max(args.context_length[0]))
-    args.context_length = [[max_context_length] * len(sublist) for sublist in args.context_length]
+        open_clip.factory._MODEL_CONFIGS[args.model]['text_cfg']['context_length'] = max_context_length
+    args.context_length = [[max_context_length] * len(sublist) for sublist in args.img_or_txt]
 
 
     args.context_length = args.context_length[0][0]
