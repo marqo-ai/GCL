@@ -242,10 +242,9 @@ def run_eval(argv):
             max_context_length = open_clip.factory._MODEL_CONFIGS[args.model_name]['text_cfg']['context_length']
         else:
             max_context_length = 77
-    args.context_length = [[max_context_length] * len(sublist) for sublist in args.img_or_txt]
-
-
-    args.context_length = args.context_length[0][0]
+    else:
+        open_clip.factory._MODEL_CONFIGS[args.model_name]['text_cfg']['context_length'] = max_context_length
+    args.context_length = max_context_length
 
     if not args.metric_only:
         model_name = args.model_name
