@@ -38,7 +38,7 @@ def scan_model_configs():
             model_cfg = json.load(f)
             if all(a in model_cfg for a in ('embed_dim', 'vision_cfg', 'text_cfg')):
                 _MODEL_CONFIGS[cf.stem] = model_cfg
-
+    from open_clip.factory import _natural_key
     _MODEL_CONFIGS = {k: v for k, v in sorted(_MODEL_CONFIGS.items(), key=lambda x: _natural_key(x[0]))}
 
     return _MODEL_CONFIGS
