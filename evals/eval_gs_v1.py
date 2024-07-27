@@ -50,10 +50,6 @@ def process_multi_modal_args(args):
     args.left_weights = eval(args.left_weights)
     args.right_weights = eval(args.right_weights)
     args.img_or_txt = eval(args.img_or_txt)
-    try:
-        args.id_keys = eval(args.id_keys)
-    except AttributeError:
-        print("AttributeError: 'Namespace' object has no attribute 'id_keys'")
     assert len(args.left_weights) == len(args.left_keys)
     assert len(args.right_weights) == len(args.right_keys)
     assert len(args.img_or_txt[0]) == len(args.left_keys)
@@ -136,7 +132,7 @@ def calculate_mean_rbp(qrels, retrieved_results, p=0.9):
     return mean_RBP
 
 
-logging.basicConfig(format='%(message)s', level=logging.INFO)
+logging.basicConfig(level=logging.INFO)
 
 
 def calc_all_features_mf(model_name, model, doc_meta_list, preprocess, args, side=0):
@@ -270,27 +266,24 @@ def run_eval(argv):
     else:
         max_context_length = 0
     if max_context_length == 0:
-        if 'context_length' in open_clip.factory._MODEL_CONFIGS[args.model]['text_cfg']:
-            max_context_length = open_clip.factory._MODEL_CONFIGS[args.model]['text_cfg']['context_length']
+        if 'context_length' in open_clip.factory._MODEL_CONFIGS[args.model_name]['text_cfg']:
+            max_context_length = open_clip.factory._MODEL_CONFIGS[args.model_name]['text_cfg']['context_length']
         else:
             max_context_length = 77
     else:
-        open_clip.factory._MODEL_CONFIGS[args.model]['text_cfg']['context_length'] = max_context_length
-    args.context_length = [[max_context_length] * len(sublist) for sublist in args.img_or_txt]
-
-
-    args.context_length = args.context_length[0][0]
+        open_clip.factory._MODEL_CONFIGS[args.model_name]['text_cfg']['context_length'] = max_context_length
+    args.context_length = max_context_length
 
     if not args.metric_only:
         model_name = args.model_name
         pretrained = args.pretrained
-        print(pretrained, model_name)
+        logging.info(f"{model_name} {pretrained}")
 
         model, preprocess, tokenizer = load_model(model_name, pretrained)
         model = model.to('cuda')
 
 
-        print("loading df test")
+        logging.info("loading df test")
         df_test = pd.read_csv(args.test_csv)
         query_key = args.query_id_key
         if not query_key:
@@ -299,7 +292,7 @@ def run_eval(argv):
             for col in args.left_keys:
                 df_test[query_key] += df_test[col] + "_{!@#~}_"
 
-        print(df_test)
+        logging.info(df_test)
         if len(df_test[args.weight_key].unique()) > 1:
             df_test[args.weight_key] = (((df_test[args.weight_key] - df_test[args.weight_key].min()) / (df_test[args.weight_key].max() - df_test[args.weight_key].min())) * 99 + 1).astype(int)
         else:
@@ -334,17 +327,17 @@ def run_eval(argv):
 
         if all_features is not None:
             all_features = torch.stack(all_features).to('cuda')
-            print(all_features.shape, all_features.dtype)
+            logging.info(f"{all_features.shape} {all_features.dtype}")
 
 
     # Get Ground truth Results
     if os.path.exists(args.gt_results_path):
-        print("Loading Ground Truth")
+        logging.info("Loading Ground Truth")
         with open(args.gt_results_path, "r") as f:
             gt_results = json.load(f)
             test_queries = list(gt_results.keys())
     else:
-        print("Computing")
+        logging.info("Computing")
         gt_results = {}
         for query in tqdm(test_queries):
             _df_query = df_test.loc[[query]].sort_values(by=args.weight_key, ascending=False)
@@ -354,18 +347,18 @@ def run_eval(argv):
             json.dump(gt_results, f)
 
     if os.path.exists(args.retrieval_path) and not args.overwrite_retrieval:
-        print("Loading Retrieval")
+        logging.info("Loading Retrieval")
         with open(args.retrieval_path, "r") as f:
             retrieval_results = json.load(f)
     else:
-        print("Running Retrieval")
+        logging.info("Running Retrieval")
         retrieval_results = _run_queries(test_queries, query_features, doc_ids_all, all_features, tokenizer, model, 1000, args)
         with open(args.retrieval_path, "w") as f:
             json.dump(retrieval_results, f)
 
 
     # Evaluation Starts
-    print("Evaluation Starts")
+    logging.info("Evaluation Starts")
     evaluator = EvaluateRetrieval()
     ks = [1, 2, 3, 4, 5, 6, 8, 10, 12, 20, 30, 40, 50, 60, 70, 80, 90, 100, 200, 500, 1000]
     ndcg, _map, recall, precision = evaluator.evaluate(gt_results, retrieval_results, ks)
@@ -380,7 +373,7 @@ def run_eval(argv):
         res = evaluator.evaluate_custom(gt_results, retrieval_results, ks, metric=metric)
         output_results[metric] = res
 
-    print("Measure ERR")
+    logging.info("Measure ERR")
     mean_err = calculate_mean_err(gt_results, retrieval_results)
     mean_rbp_7 = calculate_mean_rbp(gt_results, retrieval_results, p=0.7)
     mean_rbp_8 = calculate_mean_rbp(gt_results, retrieval_results, p=0.8)
@@ -396,9 +389,9 @@ def run_eval(argv):
         'mRBP9': mean_rbp_9,
     }
 
-    print(output_results["summary"])
+    logging.info(output_results["summary"])
     output_sum_df = pd.DataFrame(output_results["summary"])
-    print(output_sum_df)
+    logging.info(output_sum_df)
     output_sum_df.to_csv(args.output_json.replace(".json", ".csv"), index=False)
 
     with open(args.output_json, 'w') as f:
@@ -408,4 +401,7 @@ def run_eval(argv):
 
 
 if __name__ == "__main__":
-    run_eval(sys.argv[1:])
+    try:
+        run_eval(sys.argv[1:])
+    except Exception as e:
+        logging.error(f"Unexpected error caught: {e}", exc_info=True)
