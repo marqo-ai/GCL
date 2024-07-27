@@ -1,0 +1,16 @@
+{
+    "embed_dim": 1024,
+    "quick_gelu": true,
+    "vision_cfg": {
+        "image_size": 224,
+        "layers": 1,
+        "width": 768,
+        "patch_size": 32
+    },
+    "text_cfg": {
+        "hf_model_name": "intfloat/multilingual-e5-large",
+        "hf_tokenizer_name": "intfloat/multilingual-e5-large",
+        "proj": null,
+        "pooler_type": "mean_pooler"
+    }
+}

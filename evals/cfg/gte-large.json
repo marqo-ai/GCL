@@ -1,0 +1,16 @@
+{
+    "embed_dim": 1024,
+    "quick_gelu": true,
+    "vision_cfg": {
+        "image_size": 224,
+        "layers": 1,
+        "width": 768,
+        "patch_size": 32
+    },
+    "text_cfg": {
+        "hf_model_name": "thenlper/gte-large",
+        "hf_tokenizer_name": "thenlper/gte-large",
+        "proj": null,
+        "pooler_type": "mean_pooler"
+    }
+}

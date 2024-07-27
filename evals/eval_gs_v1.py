@@ -11,6 +11,7 @@ import logging
 from eval_dataset_loader import MFRightEvalDataset
 from torch.utils.data import DataLoader
 from torch.nn import functional as F
+from pathlib import Path
 # import concurrent
 # from pathlib import Path
 # import re
@@ -18,6 +19,29 @@ from torch.nn import functional as F
 # from scipy.stats import entropy, wasserstein_distance
 from time import perf_counter
 # import pdb
+
+
+def scan_model_configs():
+    _MODEL_CONFIG_PATHS = [Path(__file__).parent / f"cfg/"]
+    _MODEL_CONFIGS = {}
+    config_ext = ('.json',)
+    config_files = []
+    for config_path in _MODEL_CONFIG_PATHS:
+        if config_path.is_file() and config_path.suffix in config_ext:
+            config_files.append(config_path)
+        elif config_path.is_dir():
+            for ext in config_ext:
+                config_files.extend(config_path.glob(f'*{ext}'))
+
+    for cf in config_files:
+        with open(cf, 'r') as f:
+            model_cfg = json.load(f)
+            if all(a in model_cfg for a in ('embed_dim', 'vision_cfg', 'text_cfg')):
+                _MODEL_CONFIGS[cf.stem] = model_cfg
+
+    _MODEL_CONFIGS = {k: v for k, v in sorted(_MODEL_CONFIGS.items(), key=lambda x: _natural_key(x[0]))}
+
+    return _MODEL_CONFIGS
 
 
 def process_multi_modal_args(args):
@@ -230,6 +254,10 @@ def run_eval(argv):
 
     if not args.gt_results_path:
         args.gt_results_path = os.path.join(args.output_dir, "gt_results.json")
+
+
+    additional_model_cfgs = scan_model_configs()
+    open_clip.factory._MODEL_CONFIGS.update(additional_model_cfgs)
 
 
     process_multi_modal_args(args)
