@@ -6,13 +6,14 @@ import argparse
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--exp-path", default=None)
+    parser.add_argument("--metrics", default="['mAP@1000'', 'mrr@1000', 'NDCG@10', 'mERR', 'mRBP9']")
     parser.add_argument("--evals", default=None)
 
     args = parser.parse_args()
 
     evals = eval(args.evals)
 
-    metrics = ["mAP@1000", "mrr@1000", "NDCG@10", "mERR", "mRBP9"]
+    metrics = eval(args.metrics)
     exp_path = args.exp_path
     dirs = os.listdir(exp_path)
 

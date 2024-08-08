@@ -219,7 +219,7 @@ def run_eval(argv):
     parser.add_argument("--overwrite-feature", action="store_true", default=False)
     parser.add_argument("--overwrite-retrieval", action="store_true", default=False)
     parser.add_argument("--batch-size", type=int, default=256)
-    parser.add_argument("--weight_key", default="score")
+    parser.add_argument("--weight_key", default=None)
     parser.add_argument("--num_workers", type=int, default=4)
     parser.add_argument("--output-dir", type=str)
 
@@ -293,9 +293,10 @@ def run_eval(argv):
                 df_test[query_key] += df_test[col] + "_{!@#~}_"
 
         logging.info(df_test)
-        if len(df_test[args.weight_key].unique()) > 1:
+        if (args.weight_key in df_test.columns) and len(df_test[args.weight_key].unique()) > 1:
             df_test[args.weight_key] = (((df_test[args.weight_key] - df_test[args.weight_key].min()) / (df_test[args.weight_key].max() - df_test[args.weight_key].min())) * 99 + 1).astype(int)
         else:
+            args.weight_key = "score"
             df_test[args.weight_key] = 1
         # get the test queries
         test_queries = get_test_queries(df_test, top_q=args.top_q, weight_key=args.weight_key, query_key=query_key)
