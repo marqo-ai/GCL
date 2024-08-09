@@ -1,4 +1,6 @@
 import sys
+import time
+
 import torch
 import argparse
 import json
@@ -12,13 +14,9 @@ from eval_dataset_loader import MFRightEvalDataset
 from torch.utils.data import DataLoader
 from torch.nn import functional as F
 from pathlib import Path
-# import concurrent
-# from pathlib import Path
-# import re
-# from collections import Counter
-# from scipy.stats import entropy, wasserstein_distance
-from time import perf_counter
-# import pdb
+import numpy
+import faiss
+
 
 
 def scan_model_configs():
@@ -157,8 +155,10 @@ def calc_all_features_mf(model_name, model, doc_meta_list, preprocess, args, sid
         right_features = torch.stack(right_features, dim=1)
         right_features_mean = (right_features * right_weights.unsqueeze(-1).repeat(1, 1, right_features.shape[-1]).to(device=right_features.device, dtype=right_features.dtype)).sum(1)
         right_features_mean = F.normalize(right_features_mean, dim=-1)
-        all_features += right_features_mean
-
+        if args.run_queries_cpu:
+            all_features += right_features_mean.cpu()
+        else:
+            all_features += right_features_mean
     return all_features
 
 
@@ -182,21 +182,11 @@ def get_test_queries(df_test, top_q=2000, weight_key=None, query_key="query"):
     return test_queries
 
 
-# def get_query_doc_id_mappings(df_test, test_queries, query_key):
-#     # get the files associated with a query to create context
-#     k_items_df = df_test.reset_index(drop=True).set_index(query_key)
-#
-#     # create a key mapping to the images list
-#     query_ids_mapping = dict()
-#     for query in tqdm(test_queries):
-#         # Extract the first k items from each group
-#         query_ids_mapping[query] = k_items_df.loc[[query]].to_dict(orient='records')
-#     return query_ids_mapping
-
-
-def _run_queries(test_queries, query_features, doc_ids_all, all_features, tokenizer, model, k, args):
+def run_queries(test_queries, query_features, doc_ids_all, all_features, k):
     # now do the search
     cos = torch.nn.CosineSimilarity(dim=1, eps=1e-6)
+    query_features = query_features.cuda()
+    all_features = all_features.cuda()
 
     results = dict()
     for query, query_feature in tqdm(zip(test_queries, query_features)):
@@ -206,6 +196,21 @@ def _run_queries(test_queries, query_features, doc_ids_all, all_features, tokeni
         top_scores, top_inds = torch.topk(similarity, k)
         top_scores = list(top_scores.cpu().numpy())
         top_inds = list(top_inds.cpu().numpy())
+        results[query] = {str(doc_ids_all[idx]): float(_s) for idx, _s in zip(top_inds, top_scores)}
+    return results
+
+
+def run_queries_cpu(test_queries, query_features, doc_ids_all, all_features, k):
+
+    results = dict()
+    all_features_np = all_features.cpu().numpy()
+    index = faiss.IndexFlatIP(all_features_np.shape[1])
+    index.add(all_features_np)
+
+    query_features_np = query_features.cpu().numpy()
+    top_scores_all, top_inds_all = index.search(query_features_np, k=k)
+    for query, top_scores, top_inds in zip(test_queries, top_scores_all, top_inds_all):
+
         results[query] = {str(doc_ids_all[idx]): float(_s) for idx, _s in zip(top_inds, top_scores)}
     return results
 
@@ -237,6 +242,8 @@ def run_eval(argv):
     parser.add_argument("--doc-id-key", type=str, default="product_id")
     parser.add_argument("--query-id-key", type=str, default=None)
     parser.add_argument("--metric-only", action="store_true", default=False)
+
+    parser.add_argument("--run-queries-cpu", action="store_true", default=False)
 
 
 
@@ -282,7 +289,6 @@ def run_eval(argv):
         model, preprocess, tokenizer = load_model(model_name, pretrained)
         model = model.to('cuda')
 
-
         logging.info("loading df test")
         df_test = pd.read_csv(args.test_csv)
         query_key = args.query_id_key
@@ -298,8 +304,15 @@ def run_eval(argv):
         else:
             args.weight_key = "score"
             df_test[args.weight_key] = 1
-        # get the test queries
-        test_queries = get_test_queries(df_test, top_q=args.top_q, weight_key=args.weight_key, query_key=query_key)
+
+        # get the test queries and gt_results if it is there.
+        if os.path.exists(args.gt_results_path):
+            logging.info("Loading Ground Truth")
+            with open(args.gt_results_path, "r") as f:
+                gt_results = json.load(f)
+                test_queries = list(gt_results.keys())
+        else:
+            test_queries = get_test_queries(df_test, top_q=args.top_q, weight_key=args.weight_key, query_key=query_key)
 
         df_test = df_test.set_index(query_key)
         df_test[args.doc_id_key] = df_test[args.doc_id_key].astype(str)
@@ -309,7 +322,7 @@ def run_eval(argv):
         df_query = df_test[~df_test.index.duplicated()]
         query_meta_list = [df_query.loc[query_id].to_dict() for query_id in test_queries]
         query_features = calc_all_features_mf(model_name, model, query_meta_list, preprocess, args, side=0)
-        query_features = torch.stack(query_features).to('cuda')
+        query_features = torch.stack(query_features)
 
         # Get Doc_IDs and doc meta
         with open(args.doc_meta, "r") as f:
@@ -327,16 +340,13 @@ def run_eval(argv):
             all_features = torch.load(args.features_path)
 
         if all_features is not None:
-            all_features = torch.stack(all_features).to('cuda')
+            all_features = torch.stack(all_features)
             logging.info(f"{all_features.shape} {all_features.dtype}")
 
 
     # Get Ground truth Results
     if os.path.exists(args.gt_results_path):
-        logging.info("Loading Ground Truth")
-        with open(args.gt_results_path, "r") as f:
-            gt_results = json.load(f)
-            test_queries = list(gt_results.keys())
+        pass
     else:
         logging.info("Computing")
         gt_results = {}
@@ -353,7 +363,10 @@ def run_eval(argv):
             retrieval_results = json.load(f)
     else:
         logging.info("Running Retrieval")
-        retrieval_results = _run_queries(test_queries, query_features, doc_ids_all, all_features, tokenizer, model, 1000, args)
+        if args.run_queries_cpu:
+            retrieval_results = run_queries_cpu(test_queries, query_features, doc_ids_all, all_features, 1000)
+        else:
+            retrieval_results = run_queries(test_queries, query_features, doc_ids_all, all_features, 1000)
         with open(args.retrieval_path, "w") as f:
             json.dump(retrieval_results, f)
 
