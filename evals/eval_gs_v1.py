@@ -175,8 +175,8 @@ def get_test_queries(df_test, top_q=2000, weight_key=None, query_key="query"):
     _df_temp_ = _df_temp_.groupby(query_key).sum()
     if top_q == -1:
         top_q = len(df_test[query_key].unique())
-    # sampled_data = _df_temp_.sample(n=top_q, weights=_df_temp_[weight_key], random_state=1, replace=False)
-    sampled_data = _df_temp_.sample(n=top_q)
+    sampled_data = _df_temp_.sample(n=top_q, weights=_df_temp_[weight_key], random_state=1, replace=False)
+    # sampled_data = _df_temp_.sample(n=top_q)
     sampled_data = sampled_data.sort_values(by=weight_key, ascending=False)
     test_queries = list(sampled_data.index)
     return test_queries
@@ -244,6 +244,7 @@ def run_eval(argv):
     parser.add_argument("--metric-only", action="store_true", default=False)
 
     parser.add_argument("--run-queries-cpu", action="store_true", default=False)
+    parser.add_argument("--features-path", type=str, default=None)
 
 
 
@@ -251,7 +252,8 @@ def run_eval(argv):
 
     if not os.path.exists(args.output_dir):
         os.mkdir(args.output_dir)
-    args.features_path = os.path.join(args.output_dir, "features.pt")
+    if not args.features_path:
+        args.features_path = os.path.join(args.output_dir, "features.pt")
     args.output_json = os.path.join(args.output_dir, "output.json")
     args.retrieval_path = os.path.join(args.output_dir, "retrieval.json")
 
