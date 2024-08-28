@@ -6,7 +6,7 @@ import argparse
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--exp-path", default=None)
-    parser.add_argument("--metrics", default="['mAP@1000'', 'mrr@1000', 'NDCG@10', 'mERR', 'mRBP9']")
+    parser.add_argument("--metrics", default="['mAP@1000', 'mrr@1000', 'NDCG@10', 'mERR', 'mRBP9']")
     parser.add_argument("--evals", default=None)
 
     args = parser.parse_args()

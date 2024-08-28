@@ -221,6 +221,7 @@ def run_eval(argv):
     parser.add_argument("--doc-meta", type=str, default=None)
     parser.add_argument("--pretrained", type=str)
     parser.add_argument("--model_name", type=str, help="Model type", default="ViT-B-32")
+    parser.add_argument("--preprocess", type=str, default=None)
     parser.add_argument("--overwrite-feature", action="store_true", default=False)
     parser.add_argument("--overwrite-retrieval", action="store_true", default=False)
     parser.add_argument("--batch-size", type=int, default=256)
@@ -289,6 +290,9 @@ def run_eval(argv):
         logging.info(f"{model_name} {pretrained}")
 
         model, preprocess, tokenizer = load_model(model_name, pretrained)
+        if args.preprocess:
+            _, preprocess, _ = load_model(model_name, args.preprocess)
+
         model = model.to('cuda')
 
         logging.info("loading df test")
@@ -350,7 +354,7 @@ def run_eval(argv):
     if os.path.exists(args.gt_results_path):
         pass
     else:
-        logging.info("Computing")
+        logging.info("Computing Ground Truth")
         gt_results = {}
         for query in tqdm(test_queries):
             _df_query = df_test.loc[[query]].sort_values(by=args.weight_key, ascending=False)
