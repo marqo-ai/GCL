@@ -17,6 +17,8 @@ from pathlib import Path
 import numpy
 import faiss
 
+import zipfile
+from transformers import AutoModel, AutoTokenizer
 
 
 def scan_model_configs():
@@ -133,9 +135,8 @@ def calculate_mean_rbp(qrels, retrieved_results, p=0.9):
 logging.basicConfig(level=logging.INFO)
 
 
-def calc_all_features_mf(model_name, model, doc_meta_list, preprocess, args, side=0):
+def calc_all_features_mf(model_name, model, tokenizer, doc_meta_list, preprocess, args, side=0):
     all_features = []
-    tokenizer = open_clip.get_tokenizer(model_name)
     mmevaldataset = MFRightEvalDataset(doc_meta_list, tokenizer, preprocess, args, side=side)
     mmevaldataloader = DataLoader(mmevaldataset, args.batch_size, shuffle=False, num_workers=args.num_workers)
 
@@ -176,7 +177,7 @@ def get_test_queries(df_test, top_q=2000, weight_key=None, query_key="query"):
     if top_q == -1:
         top_q = len(df_test[query_key].unique())
     sampled_data = _df_temp_.sample(n=top_q, weights=_df_temp_[weight_key], random_state=1, replace=False)
-    # sampled_data = _df_temp_.sample(n=top_q)
+    # sampled_data = _df_temp_.sample(n=top_q, random_state=1)
     sampled_data = sampled_data.sort_values(by=weight_key, ascending=False)
     test_queries = list(sampled_data.index)
     return test_queries
@@ -289,7 +290,18 @@ def run_eval(argv):
         pretrained = args.pretrained
         logging.info(f"{model_name} {pretrained}")
 
-        model, preprocess, tokenizer = load_model(model_name, pretrained)
+        if pretrained and ".zip" in pretrained:
+            model, preprocess, tokenizer = load_model(model_name, "")
+
+            model_local_repo = pretrained.replace(".zip", "")
+            with zipfile.ZipFile(pretrained, 'r') as zip_ref:
+                zip_ref.extractall(model_local_repo)
+            model.text.transformer = AutoModel.from_pretrained(model_local_repo)
+            model = model.to('cuda')
+            model.eval()
+        else:
+            model, preprocess, tokenizer = load_model(model_name, pretrained)
+
         if args.preprocess:
             _, preprocess, _ = load_model(model_name, args.preprocess)
 
@@ -327,7 +339,7 @@ def run_eval(argv):
         # Get Query Meta and features.
         df_query = df_test[~df_test.index.duplicated()]
         query_meta_list = [df_query.loc[query_id].to_dict() for query_id in test_queries]
-        query_features = calc_all_features_mf(model_name, model, query_meta_list, preprocess, args, side=0)
+        query_features = calc_all_features_mf(model_name, model, tokenizer, query_meta_list, preprocess, args, side=0)
         query_features = torch.stack(query_features)
 
         # Get Doc_IDs and doc meta
@@ -340,7 +352,7 @@ def run_eval(argv):
             doc_meta_list.append(doc_meta[key])
 
         if not os.path.isfile(args.features_path) or args.overwrite_feature:
-            all_features = calc_all_features_mf(model_name, model, doc_meta_list, preprocess, args, side=1)
+            all_features = calc_all_features_mf(model_name, model, tokenizer, doc_meta_list, preprocess, args, side=1)
             torch.save(all_features, args.features_path)
         else:
             all_features = torch.load(args.features_path)
