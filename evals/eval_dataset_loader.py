@@ -2,6 +2,7 @@ from torch.utils.data import Dataset
 from PIL import Image
 import numpy as np
 import pandas as pd
+import io
 
 
 class MMEvalDataset(Dataset):
@@ -42,6 +43,7 @@ class MFRightEvalDataset(Dataset):
         self.tokenize = tokenizer
         self.context_length = args.context_length
         self.side = side
+        self.is_hf_dataset = args.hf_dataset is not None
 
     def __len__(self):
         return len(self.right_inputs)
@@ -52,7 +54,8 @@ class MFRightEvalDataset(Dataset):
             if cat == "txt":
                 rights.append(self.tokenize([str(self.right_inputs[idx][j])], context_length=self.context_length)[0])
             else:
-                rights.append(self.transforms(Image.open(str(self.right_inputs[idx][j]))))
+                img = str(self.right_inputs[idx][j]) if not self.is_hf_dataset else io.BytesIO(self.right_inputs[idx][j]['bytes'])
+                rights.append(self.transforms(Image.open(img)))
 
         right_weight = np.array(self.right_weights)
 

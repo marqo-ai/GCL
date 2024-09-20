@@ -16,7 +16,7 @@ from torch.nn import functional as F
 from pathlib import Path
 import numpy
 import faiss
-
+from datasets import load_dataset
 import zipfile
 from transformers import AutoModel, AutoTokenizer
 
@@ -220,6 +220,8 @@ def run_eval(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument("--test_csv", type=str, default=None)
     parser.add_argument("--doc-meta", type=str, default=None)
+    parser.add_argument("--hf-dataset", type=str, default=None)
+    parser.add_argument("--hf-dataset-split", type=str, default='data')
     parser.add_argument("--pretrained", type=str)
     parser.add_argument("--model_name", type=str, help="Model type", default="ViT-B-32")
     parser.add_argument("--preprocess", type=str, default=None)
@@ -253,7 +255,7 @@ def run_eval(argv):
     args = parser.parse_args(argv)
 
     if not os.path.exists(args.output_dir):
-        os.mkdir(args.output_dir)
+        os.makedirs(args.output_dir)
     if not args.features_path:
         args.features_path = os.path.join(args.output_dir, "features.pt")
     args.output_json = os.path.join(args.output_dir, "output.json")
@@ -308,7 +310,11 @@ def run_eval(argv):
         model = model.to('cuda')
 
         logging.info("loading df test")
-        df_test = pd.read_csv(args.test_csv)
+        if args.hf_dataset is not None:
+            hf_dataset = load_dataset(args.hf_dataset, num_proc=os.cpu_count())[args.hf_dataset_split]
+            df_test = hf_dataset.to_pandas()
+        else:
+            df_test = pd.read_csv(args.test_csv)
         query_key = args.query_id_key
         if not query_key:
             query_key = "query_id"
@@ -343,8 +349,11 @@ def run_eval(argv):
         query_features = torch.stack(query_features)
 
         # Get Doc_IDs and doc meta
-        with open(args.doc_meta, "r") as f:
-            doc_meta = json.load(f)
+        if args.hf_dataset is not None:
+            doc_meta = hf_dataset.to_pandas().set_index(args.doc_id_key).to_dict('index')
+        else:
+            with open(args.doc_meta, "r") as f:
+                doc_meta = json.load(f)
         doc_ids_all = []
         doc_meta_list = []
         for key in doc_meta:
