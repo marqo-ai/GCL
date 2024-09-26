@@ -286,7 +286,7 @@ def run_eval(argv):
     else:
         open_clip.factory._MODEL_CONFIGS[args.model_name]['text_cfg']['context_length'] = max_context_length
     args.context_length = max_context_length
-
+    gt_results = None
     if not args.metric_only:
         model_name = args.model_name
         pretrained = args.pretrained
@@ -372,8 +372,10 @@ def run_eval(argv):
 
 
     # Get Ground truth Results
-    if os.path.exists(args.gt_results_path):
-        pass
+    if os.path.exists(args.gt_results_path) and gt_results is None:
+        logging.info("Loading Ground Truth")
+        with open(args.gt_results_path, "r") as f:
+            gt_results = json.load(f)
     else:
         logging.info("Computing Ground Truth")
         gt_results = {}
@@ -424,6 +426,8 @@ def run_eval(argv):
         'mAP@1000': [_map["MAP@1000"]],
         'mrr@1000': [output_results['mrr']["MRR@1000"]],
         'NDCG@10': [ndcg["NDCG@10"]],
+        'Recall@10': [recall["Recall@10"]],
+        'P@10': [precision["P@10"]],
         'mERR': mean_err,
         'mRBP7': mean_rbp_7,
         'mRBP8': mean_rbp_8,
