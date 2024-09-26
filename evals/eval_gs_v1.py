@@ -278,13 +278,14 @@ def run_eval(argv):
         max_context_length = max(max(args.context_length[0]), max(args.context_length[1]))
     else:
         max_context_length = 0
-    if max_context_length == 0:
-        if 'context_length' in open_clip.factory._MODEL_CONFIGS[args.model_name]['text_cfg']:
-            max_context_length = open_clip.factory._MODEL_CONFIGS[args.model_name]['text_cfg']['context_length']
+    if not args.model_name.startswith('hf-hub:'):
+        if max_context_length == 0:
+            if 'context_length' in open_clip.factory._MODEL_CONFIGS[args.model_name]['text_cfg']:
+                max_context_length = open_clip.factory._MODEL_CONFIGS[args.model_name]['text_cfg']['context_length']
+            else:
+                max_context_length = 77
         else:
-            max_context_length = 77
-    else:
-        open_clip.factory._MODEL_CONFIGS[args.model_name]['text_cfg']['context_length'] = max_context_length
+            open_clip.factory._MODEL_CONFIGS[args.model_name]['text_cfg']['context_length'] = max_context_length
     args.context_length = max_context_length
     gt_results = None
     if not args.metric_only:
