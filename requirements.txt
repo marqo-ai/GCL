@@ -1,7 +1,7 @@
 beir==2.0.0
 braceexpand==0.1.7
 numpy==1.23.2
-open_clip_torch==2.23.0
+open_clip_torch==2.26.1
 pandas==2.2.2
 # pytorch-cuda==11.7
 pytrec-eval==0.5
