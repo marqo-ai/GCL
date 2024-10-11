@@ -248,7 +248,7 @@ def run_eval(argv):
     parser.add_argument("--run-queries-cpu", action="store_true", default=False)
     parser.add_argument("--features-path", type=str, default=None)
 
-    parser.add_argument("--k", type=int, default=1000)
+    parser.add_argument("--top-k", type=int, default=1000)
 
 
 
@@ -372,7 +372,7 @@ def run_eval(argv):
         gt_results = {}
         for query in tqdm(test_queries):
             _df_query = df_test.loc[[query]].sort_values(by=args.weight_key, ascending=False)
-            relevant_docs, relevance = _df_query[args.doc_id_key][:args.k].tolist(), _df_query[args.weight_key][:args.k].tolist()
+            relevant_docs, relevance = _df_query[args.doc_id_key][:args.top_k].tolist(), _df_query[args.weight_key][:args.top_k].tolist()
             gt_results[query] = {doc: round(rel) for doc, rel in zip(relevant_docs, relevance)}
         with open(args.gt_results_path, "w") as f:
             json.dump(gt_results, f)
@@ -384,9 +384,9 @@ def run_eval(argv):
     else:
         logging.info("Running Retrieval")
         if args.run_queries_cpu:
-            retrieval_results = run_queries_cpu(test_queries, query_features, doc_ids_all, all_features, args.k)
+            retrieval_results = run_queries_cpu(test_queries, query_features, doc_ids_all, all_features, args.top_k)
         else:
-            retrieval_results = run_queries(test_queries, query_features, doc_ids_all, all_features, args.k)
+            retrieval_results = run_queries(test_queries, query_features, doc_ids_all, all_features, args.top_k)
         with open(args.retrieval_path, "w") as f:
             json.dump(retrieval_results, f)
 
@@ -395,7 +395,7 @@ def run_eval(argv):
     logging.info("Evaluation Starts")
     evaluator = EvaluateRetrieval()
     ks = [1, 2, 3, 4, 5, 6, 8, 10, 12, 20, 30, 40, 50, 60, 70, 80, 90, 100, 200, 500, 1000]
-    ks = [k for k in ks if k <= args.k]
+    ks = [k for k in ks if k <= args.top_k]
     ndcg, _map, recall, precision = evaluator.evaluate(gt_results, retrieval_results, ks)
     output_results = {
         'mAP': _map,
