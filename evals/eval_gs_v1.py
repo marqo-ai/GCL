@@ -248,6 +248,8 @@ def run_eval(argv):
     parser.add_argument("--run-queries-cpu", action="store_true", default=False)
     parser.add_argument("--features-path", type=str, default=None)
 
+    parser.add_argument("--k", type=int, default=1000)
+
 
 
     args = parser.parse_args(argv)
@@ -370,7 +372,7 @@ def run_eval(argv):
         gt_results = {}
         for query in tqdm(test_queries):
             _df_query = df_test.loc[[query]].sort_values(by=args.weight_key, ascending=False)
-            relevant_docs, relevance = _df_query[args.doc_id_key][:1000].tolist(), _df_query[args.weight_key][:1000].tolist()
+            relevant_docs, relevance = _df_query[args.doc_id_key][:args.k].tolist(), _df_query[args.weight_key][:args.k].tolist()
             gt_results[query] = {doc: round(rel) for doc, rel in zip(relevant_docs, relevance)}
         with open(args.gt_results_path, "w") as f:
             json.dump(gt_results, f)
@@ -382,9 +384,9 @@ def run_eval(argv):
     else:
         logging.info("Running Retrieval")
         if args.run_queries_cpu:
-            retrieval_results = run_queries_cpu(test_queries, query_features, doc_ids_all, all_features, 1000)
+            retrieval_results = run_queries_cpu(test_queries, query_features, doc_ids_all, all_features, args.k)
         else:
-            retrieval_results = run_queries(test_queries, query_features, doc_ids_all, all_features, 1000)
+            retrieval_results = run_queries(test_queries, query_features, doc_ids_all, all_features, args.k)
         with open(args.retrieval_path, "w") as f:
             json.dump(retrieval_results, f)
 
@@ -393,6 +395,7 @@ def run_eval(argv):
     logging.info("Evaluation Starts")
     evaluator = EvaluateRetrieval()
     ks = [1, 2, 3, 4, 5, 6, 8, 10, 12, 20, 30, 40, 50, 60, 70, 80, 90, 100, 200, 500, 1000]
+    ks = [k for k in ks if k <= args.k]
     ndcg, _map, recall, precision = evaluator.evaluate(gt_results, retrieval_results, ks)
     output_results = {
         'mAP': _map,
@@ -412,8 +415,8 @@ def run_eval(argv):
     mean_rbp_9 = calculate_mean_rbp(gt_results, retrieval_results, p=0.9)
 
     output_results["summary"] = {
-        'mAP@1000': [_map["MAP@1000"]],
-        'mrr@1000': [output_results['mrr']["MRR@1000"]],
+        f"mAP@{ks[-1]}": [output_results['mAP'][f"MAP@{ks[-1]}"]],
+        f"mrr@{ks[-1]}": [output_results['mrr'][f"MRR@{ks[-1]}"]],
         'NDCG@10': [ndcg["NDCG@10"]],
         'mERR': mean_err,
         'mRBP7': mean_rbp_7,
