@@ -442,3 +442,4 @@ if __name__ == "__main__":
         run_eval(sys.argv[1:])
     except Exception as e:
         logging.error(f"Unexpected error caught: {e}", exc_info=True)
+        sys.exit(1)
