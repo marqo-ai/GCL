@@ -10,7 +10,7 @@
     "text_cfg": {
         "hf_model_name": "thenlper/gte-large",
         "hf_tokenizer_name": "thenlper/gte-large",
-        "proj": null,
-        "pooler_type": "mean_pooler"
+        "hf_proj_type": null,
+        "hf_pooler_type": "mean_pooler"
     }
 }
