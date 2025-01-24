@@ -20,6 +20,8 @@ import faiss
 import zipfile
 from transformers import AutoModel, AutoTokenizer
 
+from flag_args import configure_as_flag_arg
+
 
 def scan_model_configs():
     _MODEL_CONFIG_PATHS = [Path(__file__).parent / f"cfg/"]
@@ -223,8 +225,8 @@ def run_eval(argv):
     parser.add_argument("--pretrained", type=str)
     parser.add_argument("--model_name", type=str, help="Model type", default="ViT-B-32")
     parser.add_argument("--preprocess", type=str, default=None)
-    parser.add_argument("--overwrite-feature", action="store_true", default=False)
-    parser.add_argument("--overwrite-retrieval", action="store_true", default=False)
+    parser.add_argument("--overwrite-feature", **configure_as_flag_arg(), default=False)
+    parser.add_argument("--overwrite-retrieval", **configure_as_flag_arg(), default=False)
     parser.add_argument("--batch-size", type=int, default=256)
     parser.add_argument("--weight_key", default=None)
     parser.add_argument("--num_workers", type=int, default=4)
@@ -243,9 +245,9 @@ def run_eval(argv):
     parser.add_argument("--top-q", type=int, default=2000)
     parser.add_argument("--doc-id-key", type=str, default="product_id")
     parser.add_argument("--query-id-key", type=str, default=None)
-    parser.add_argument("--metric-only", action="store_true", default=False)
+    parser.add_argument("--metric-only", **configure_as_flag_arg(), default=False)
 
-    parser.add_argument("--run-queries-cpu", action="store_true", default=False)
+    parser.add_argument("--run-queries-cpu", **configure_as_flag_arg(), default=False)
     parser.add_argument("--features-path", type=str, default=None)
 
     parser.add_argument("--top-k", type=int, default=1000)
@@ -443,3 +445,4 @@ if __name__ == "__main__":
         run_eval(sys.argv[1:])
     except Exception as e:
         logging.error(f"Unexpected error caught: {e}", exc_info=True)
+        sys.exit(1)

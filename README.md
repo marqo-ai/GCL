@@ -16,7 +16,7 @@ especially for retrieving relevant **products** given a search query.
 1. Motivation
 2. Dataset and Benchmarks
 3. Instructions to evaluate with the GCL Benchmarks
-4. GCL Training Framwork and Models
+4. GCL Training Framework and Models
 5. Example Usage of Models
 
 
