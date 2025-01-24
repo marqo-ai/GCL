@@ -178,6 +178,11 @@ def get_test_queries(df_test, top_q=2000, weight_key=None, query_key="query"):
     _df_temp_ = _df_temp_.groupby(query_key).sum()
     if top_q == -1:
         top_q = len(df_test[query_key].unique())
+    else:
+        top_q = min(top_q, len(df_test[query_key].unique()))
+    assert top_q <= 20000, "Error: Please choose smaller query sample size (<20000)."
+
+    print(f"Sampling {top_q} queries.")
     sampled_data = _df_temp_.sample(n=top_q, weights=_df_temp_[weight_key], random_state=1, replace=False)
     # sampled_data = _df_temp_.sample(n=top_q, random_state=1)
     sampled_data = sampled_data.sort_values(by=weight_key, ascending=False)
