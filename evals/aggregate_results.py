@@ -7,7 +7,7 @@ import json
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--exp-path", default="/MarqoModels/GE/marqo-ecommerce-B")
-    parser.add_argument("--metrics", default="['MAP@1000', 'P@10', 'Recall@10', 'MRR@1000', 'NDCG@10']")
+    parser.add_argument("--metrics", default="['MAP@1000', 'P@10', 'Recall@10', 'MRR@1000', 'NDCG@10', 'mERR']")
     parser.add_argument("--evals", default="['gs-title2image', 'gs-query2image', 'ap-name2image']")
 
     args = parser.parse_args()
@@ -23,8 +23,10 @@ if __name__ == "__main__":
     for exp_path in exp_dirs:
         with open(os.path.join(exp_path, "output.json"), "r") as f:
             results = json.load(f)
+        summary = results["summary"]
         del results['summary']
         results = {k: v for d in results.values() for k, v in d.items() if k in all_results}
+        results.update({k: v for k, v in summary.items() if (k not in results and k in all_results)})
         results["name"] = os.path.basename(exp_path)
         for k in all_results:
             all_results[k].append(results[k])

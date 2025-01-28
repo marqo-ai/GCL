@@ -8,9 +8,9 @@
         "patch_size": 32
     },
     "text_cfg": {
-        "hf_model_name": "thenlper/gte-large",
-        "hf_tokenizer_name": "thenlper/gte-large",
-        "hf_proj_type": null,
-        "hf_pooler_type": "mean_pooler"
+        "hf_model_name": "algolia/algolia-large-en-generic-v2410",
+        "hf_tokenizer_name": "algolia/algolia-large-en-generic-v2410",
+        "proj": null,
+        "pooler_type": "mean_pooler"
     }
 }

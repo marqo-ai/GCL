@@ -20,8 +20,6 @@ import faiss
 import zipfile
 from transformers import AutoModel, AutoTokenizer
 
-from flag_args import configure_as_flag_arg
-
 
 def scan_model_configs():
     _MODEL_CONFIG_PATHS = [Path(__file__).parent / f"cfg/"]
@@ -166,7 +164,7 @@ def calc_all_features_mf(model_name, model, tokenizer, doc_meta_list, preprocess
 
 
 def load_model(model_name, pretrained):
-    model, _, preprocess = open_clip.create_model_and_transforms(model_name, pretrained=pretrained, load_weights_only=False)
+    model, _, preprocess = open_clip.create_model_and_transforms(model_name, pretrained=pretrained)
     model = model.to('cuda')
     model.eval()
     tokenizer = open_clip.get_tokenizer(model_name)
@@ -178,13 +176,8 @@ def get_test_queries(df_test, top_q=2000, weight_key=None, query_key="query"):
     _df_temp_ = _df_temp_.groupby(query_key).sum()
     if top_q == -1:
         top_q = len(df_test[query_key].unique())
-    else:
-        top_q = min(top_q, len(df_test[query_key].unique()))
-    assert top_q <= 20000, "Error: Please choose smaller query sample size (<20000)."
-
-    print(f"Sampling {top_q} queries.")
-    sampled_data = _df_temp_.sample(n=top_q, weights=_df_temp_[weight_key], random_state=1, replace=False)
-    # sampled_data = _df_temp_.sample(n=top_q, random_state=1)
+    # sampled_data = _df_temp_.sample(n=top_q, weights=_df_temp_[weight_key], random_state=1, replace=False)
+    sampled_data = _df_temp_.sample(n=top_q, random_state=1)
     sampled_data = sampled_data.sort_values(by=weight_key, ascending=False)
     test_queries = list(sampled_data.index)
     return test_queries
@@ -230,8 +223,8 @@ def run_eval(argv):
     parser.add_argument("--pretrained", type=str)
     parser.add_argument("--model_name", type=str, help="Model type", default="ViT-B-32")
     parser.add_argument("--preprocess", type=str, default=None)
-    parser.add_argument("--overwrite-feature", **configure_as_flag_arg(), default=False)
-    parser.add_argument("--overwrite-retrieval", **configure_as_flag_arg(), default=False)
+    parser.add_argument("--overwrite-feature", action="store_true", default=False)
+    parser.add_argument("--overwrite-retrieval", action="store_true", default=False)
     parser.add_argument("--batch-size", type=int, default=256)
     parser.add_argument("--weight_key", default=None)
     parser.add_argument("--num_workers", type=int, default=4)
@@ -250,12 +243,11 @@ def run_eval(argv):
     parser.add_argument("--top-q", type=int, default=2000)
     parser.add_argument("--doc-id-key", type=str, default="product_id")
     parser.add_argument("--query-id-key", type=str, default=None)
-    parser.add_argument("--metric-only", **configure_as_flag_arg(), default=False)
+    parser.add_argument("--metric-only", action="store_true", default=False)
 
-    parser.add_argument("--run-queries-cpu", **configure_as_flag_arg(), default=False)
+    parser.add_argument("--run-queries-cpu", action="store_true", default=False)
     parser.add_argument("--features-path", type=str, default=None)
-
-    parser.add_argument("--top-k", type=int, default=1000)
+    parser.add_argument("--query-features-path", type=str, default=None)
 
 
 
@@ -290,31 +282,11 @@ def run_eval(argv):
             max_context_length = open_clip.factory._MODEL_CONFIGS[args.model_name]['text_cfg']['context_length']
         else:
             max_context_length = 77
-    elif not args.model_name.startswith('hf-hub:'):
+    else:
         open_clip.factory._MODEL_CONFIGS[args.model_name]['text_cfg']['context_length'] = max_context_length
     args.context_length = max_context_length
 
     if not args.metric_only:
-        model_name = args.model_name
-        pretrained = args.pretrained
-        logging.info(f"{model_name} {pretrained}")
-
-        if pretrained and ".zip" in pretrained:
-            model, preprocess, tokenizer = load_model(model_name, "")
-
-            model_local_repo = pretrained.replace(".zip", "")
-            with zipfile.ZipFile(pretrained, 'r') as zip_ref:
-                zip_ref.extractall(model_local_repo)
-            model.text.transformer = AutoModel.from_pretrained(model_local_repo)
-            model = model.to('cuda')
-            model.eval()
-        else:
-            model, preprocess, tokenizer = load_model(model_name, pretrained)
-
-        if args.preprocess:
-            _, preprocess, _ = load_model(model_name, args.preprocess)
-
-        model = model.to('cuda')
 
         logging.info("loading df test")
         df_test = pd.read_csv(args.test_csv)
@@ -326,14 +298,11 @@ def run_eval(argv):
                 df_test[query_key] += df_test[col] + "_{!@#~}_"
 
         logging.info(df_test)
-        if args.weight_key:
-            assert args.weight_key in df_test.columns
         if (args.weight_key in df_test.columns) and len(df_test[args.weight_key].unique()) > 1:
             df_test[args.weight_key] = (((df_test[args.weight_key] - df_test[args.weight_key].min()) / (df_test[args.weight_key].max() - df_test[args.weight_key].min())) * 99 + 1).astype(int)
         else:
             args.weight_key = "score"
             df_test[args.weight_key] = 1
-        assert df_test[args.weight_key].min() >= 1
 
         # get the test queries and gt_results if it is there.
         if os.path.exists(args.gt_results_path):
@@ -350,8 +319,7 @@ def run_eval(argv):
 
         # Get Query Meta and features.
         df_query = df_test[~df_test.index.duplicated()]
-        query_meta_list = [df_query.loc[query_id].to_dict() for query_id in test_queries]
-        query_features = calc_all_features_mf(model_name, model, tokenizer, query_meta_list, preprocess, args, side=0)
+        query_features = torch.load(args.query_features_path)
         query_features = torch.stack(query_features)
 
         # Get Doc_IDs and doc meta
@@ -363,11 +331,8 @@ def run_eval(argv):
             doc_ids_all.append(key)
             doc_meta_list.append(doc_meta[key])
 
-        if not os.path.isfile(args.features_path) or args.overwrite_feature:
-            all_features = calc_all_features_mf(model_name, model, tokenizer, doc_meta_list, preprocess, args, side=1)
-            torch.save(all_features, args.features_path)
-        else:
-            all_features = torch.load(args.features_path)
+
+        all_features = torch.load(args.features_path)
 
         if all_features is not None:
             all_features = torch.stack(all_features)
@@ -382,7 +347,7 @@ def run_eval(argv):
         gt_results = {}
         for query in tqdm(test_queries):
             _df_query = df_test.loc[[query]].sort_values(by=args.weight_key, ascending=False)
-            relevant_docs, relevance = _df_query[args.doc_id_key][:args.top_k].tolist(), _df_query[args.weight_key][:args.top_k].tolist()
+            relevant_docs, relevance = _df_query[args.doc_id_key][:1000].tolist(), _df_query[args.weight_key][:1000].tolist()
             gt_results[query] = {doc: round(rel) for doc, rel in zip(relevant_docs, relevance)}
         with open(args.gt_results_path, "w") as f:
             json.dump(gt_results, f)
@@ -394,9 +359,9 @@ def run_eval(argv):
     else:
         logging.info("Running Retrieval")
         if args.run_queries_cpu:
-            retrieval_results = run_queries_cpu(test_queries, query_features, doc_ids_all, all_features, args.top_k)
+            retrieval_results = run_queries_cpu(test_queries, query_features, doc_ids_all, all_features, 1000)
         else:
-            retrieval_results = run_queries(test_queries, query_features, doc_ids_all, all_features, args.top_k)
+            retrieval_results = run_queries(test_queries, query_features, doc_ids_all, all_features, 1000)
         with open(args.retrieval_path, "w") as f:
             json.dump(retrieval_results, f)
 
@@ -405,7 +370,6 @@ def run_eval(argv):
     logging.info("Evaluation Starts")
     evaluator = EvaluateRetrieval()
     ks = [1, 2, 3, 4, 5, 6, 8, 10, 12, 20, 30, 40, 50, 60, 70, 80, 90, 100, 200, 500, 1000]
-    ks = [k for k in ks if k <= args.top_k]
     ndcg, _map, recall, precision = evaluator.evaluate(gt_results, retrieval_results, ks)
     output_results = {
         'mAP': _map,
@@ -425,8 +389,8 @@ def run_eval(argv):
     mean_rbp_9 = calculate_mean_rbp(gt_results, retrieval_results, p=0.9)
 
     output_results["summary"] = {
-        f"mAP@{ks[-1]}": [output_results['mAP'][f"MAP@{ks[-1]}"]],
-        f"mrr@{ks[-1]}": [output_results['mrr'][f"MRR@{ks[-1]}"]],
+        'mAP@1000': [_map["MAP@1000"]],
+        'mrr@1000': [output_results['mrr']["MRR@1000"]],
         'NDCG@10': [ndcg["NDCG@10"]],
         'mERR': mean_err,
         'mRBP7': mean_rbp_7,
@@ -450,4 +414,3 @@ if __name__ == "__main__":
         run_eval(sys.argv[1:])
     except Exception as e:
         logging.error(f"Unexpected error caught: {e}", exc_info=True)
-        sys.exit(1)
