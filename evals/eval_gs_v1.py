@@ -183,8 +183,8 @@ def get_test_queries(df_test, top_q=2000, weight_key=None, query_key="query"):
     assert top_q <= 20000, "Error: Please choose smaller query sample size (<20000)."
 
     print(f"Sampling {top_q} queries.")
-    sampled_data = _df_temp_.sample(n=top_q, weights=_df_temp_[weight_key], random_state=1, replace=False)
-    # sampled_data = _df_temp_.sample(n=top_q, random_state=1)
+    # sampled_data = _df_temp_.sample(n=top_q, weights=_df_temp_[weight_key], random_state=1, replace=False)
+    sampled_data = _df_temp_.sample(n=top_q, random_state=1)
     sampled_data = sampled_data.sort_values(by=weight_key, ascending=False)
     test_queries = list(sampled_data.index)
     return test_queries
@@ -257,6 +257,8 @@ def run_eval(argv):
 
     parser.add_argument("--top-k", type=int, default=1000)
 
+    parser.add_argument("--tokenizer", default=None, type=str, help="custom tokenizer path")
+
 
 
     args = parser.parse_args(argv)
@@ -299,8 +301,17 @@ def run_eval(argv):
         pretrained = args.pretrained
         logging.info(f"{model_name} {pretrained}")
 
+        if args.preprocess:
+            _, preprocess, _ = load_model(model_name, args.preprocess)
+
+        if args.tokenizer:
+            import pickle as pkl
+            with open(args.tokenizer, 'rb') as f:
+                tokenizer = pkl.load(f)
+            open_clip.factory._MODEL_CONFIGS[args.model_name]['text_cfg']['vocab_size'] = len(tokenizer.tokenizer)
+
         if pretrained and ".zip" in pretrained:
-            model, preprocess, tokenizer = load_model(model_name, "")
+            model, preprocess_, tokenizer_ = load_model(model_name, "")
 
             model_local_repo = pretrained.replace(".zip", "")
             with zipfile.ZipFile(pretrained, 'r') as zip_ref:
@@ -309,10 +320,13 @@ def run_eval(argv):
             model = model.to('cuda')
             model.eval()
         else:
-            model, preprocess, tokenizer = load_model(model_name, pretrained)
+            model, preprocess_, tokenizer_ = load_model(model_name, pretrained)
 
-        if args.preprocess:
-            _, preprocess, _ = load_model(model_name, args.preprocess)
+        if not args.tokenizer:
+            tokenizer = tokenizer_
+        if not args.preprocess:
+            preprocess = preprocess_
+
 
         model = model.to('cuda')
 
