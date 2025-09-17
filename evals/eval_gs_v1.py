@@ -133,6 +133,29 @@ def calculate_mean_rbp(qrels, retrieved_results, p=0.9):
     mean_RBP = total_RBP / num_queries if num_queries > 0 else 0
     return mean_RBP
 
+# ───────────────────────────────────────────────────────────
+# 1.  NEW METRIC: cumulative gain at k  (CG@k)
+# ───────────────────────────────────────────────────────────
+def calculate_mean_cg(qrels, retrieved_results, k=10):
+    """
+    Mean Cumulative Gain at k.
+    For each query, sum the raw relevance grades of the top-k retrieved docs
+    (no discount), then average across queries.
+    """
+    total_cg = 0.0
+    num_queries = len(qrels)
+
+    for query, docs_qrels in qrels.items():
+        docs_retrieved = retrieved_results.get(query, {})
+        # highest-scoring docs first
+        top_docs = sorted(docs_retrieved.items(),
+                          key=lambda x: x[1],
+                          reverse=True)[:k]
+        total_cg += sum(docs_qrels.get(doc_id, 0) for doc_id, _ in top_docs)
+
+    return total_cg / num_queries if num_queries else 0
+# ───────────────────────────────────────────────────────────
+
 
 logging.basicConfig(level=logging.INFO)
 
@@ -173,7 +196,7 @@ def load_model(model_name, pretrained):
     return model, preprocess, tokenizer
 
 
-def get_test_queries(df_test, top_q=2000, weight_key=None, query_key="query"):
+def get_test_queries(df_test, top_q=2000, weight_key=None, query_key="query", fix_top_queries=False):
     _df_temp_ = df_test[[query_key, weight_key]]
     _df_temp_ = _df_temp_.groupby(query_key).sum()
     if top_q == -1:
@@ -183,7 +206,11 @@ def get_test_queries(df_test, top_q=2000, weight_key=None, query_key="query"):
     assert top_q <= 20000, "Error: Please choose smaller query sample size (<20000)."
 
     print(f"Sampling {top_q} queries.")
-    sampled_data = _df_temp_.sample(n=top_q, weights=_df_temp_[weight_key], random_state=1, replace=False)
+    if fix_top_queries:
+        sampled_data = _df_temp_.sort_values(by=[weight_key], ascending=False)[:top_q]
+    else:
+        sampled_data = _df_temp_.sample(n=top_q, weights=_df_temp_[weight_key], random_state=1, replace=False)
+
     # sampled_data = _df_temp_.sample(n=top_q, random_state=1)
     sampled_data = sampled_data.sort_values(by=weight_key, ascending=False)
     test_queries = list(sampled_data.index)
@@ -257,6 +284,11 @@ def run_eval(argv):
 
     parser.add_argument("--top-k", type=int, default=1000)
 
+    parser.add_argument("--score-cap", **configure_as_flag_arg(), default=False)
+    parser.add_argument("--score-scale", type=int, default=100)
+
+    parser.add_argument("--fix-top-queries", **configure_as_flag_arg(), default=False)
+
 
 
     args = parser.parse_args(argv)
@@ -329,7 +361,12 @@ def run_eval(argv):
         if args.weight_key:
             assert args.weight_key in df_test.columns
         if (args.weight_key in df_test.columns) and len(df_test[args.weight_key].unique()) > 1:
-            df_test[args.weight_key] = (((df_test[args.weight_key] - df_test[args.weight_key].min()) / (df_test[args.weight_key].max() - df_test[args.weight_key].min())) * 99 + 1).astype(int)
+            if args.score_cap:
+                import numpy as np
+                cap_value = np.percentile(df_test[args.weight_key], 95)
+                df_test[args.weight_key] = np.minimum(df_test[args.weight_key], cap_value)
+
+            df_test[args.weight_key] = (((df_test[args.weight_key] - df_test[args.weight_key].min()) / (df_test[args.weight_key].max() - df_test[args.weight_key].min())) * (args.score_scale - 1) + 1).astype(int)
         else:
             args.weight_key = "score"
             df_test[args.weight_key] = 1
@@ -342,7 +379,7 @@ def run_eval(argv):
                 gt_results = json.load(f)
                 test_queries = list(gt_results.keys())
         else:
-            test_queries = get_test_queries(df_test, top_q=args.top_q, weight_key=args.weight_key, query_key=query_key)
+            test_queries = get_test_queries(df_test, top_q=args.top_q, weight_key=args.weight_key, query_key=query_key, fix_top_queries=args.fix_top_queries)
 
         df_test = df_test.set_index(query_key)
         df_test[args.doc_id_key] = df_test[args.doc_id_key].astype(str)
@@ -423,6 +460,8 @@ def run_eval(argv):
     mean_rbp_7 = calculate_mean_rbp(gt_results, retrieval_results, p=0.7)
     mean_rbp_8 = calculate_mean_rbp(gt_results, retrieval_results, p=0.8)
     mean_rbp_9 = calculate_mean_rbp(gt_results, retrieval_results, p=0.9)
+    mean_cg_10 = calculate_mean_cg(gt_results, retrieval_results, k=10)  # <── new
+    mean_cg_30 = calculate_mean_cg(gt_results, retrieval_results, k=30)  # <── new
 
     output_results["summary"] = {
         f"mAP@{ks[-1]}": [output_results['mAP'][f"MAP@{ks[-1]}"]],
@@ -432,6 +471,8 @@ def run_eval(argv):
         'mRBP7': mean_rbp_7,
         'mRBP8': mean_rbp_8,
         'mRBP9': mean_rbp_9,
+        'CG@10': mean_cg_10,
+        'CG@30': mean_cg_30,
     }
 
     logging.info(output_results["summary"])
