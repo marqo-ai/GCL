@@ -257,6 +257,9 @@ def run_eval(argv):
 
     parser.add_argument("--top-k", type=int, default=1000)
 
+    parser.add_argument("--score-cap", **configure_as_flag_arg(), default=False)
+    parser.add_argument("--score-scale", type=int, default=100)
+
 
 
     args = parser.parse_args(argv)
@@ -329,7 +332,12 @@ def run_eval(argv):
         if args.weight_key:
             assert args.weight_key in df_test.columns
         if (args.weight_key in df_test.columns) and len(df_test[args.weight_key].unique()) > 1:
-            df_test[args.weight_key] = (((df_test[args.weight_key] - df_test[args.weight_key].min()) / (df_test[args.weight_key].max() - df_test[args.weight_key].min())) * 99 + 1).astype(int)
+            if args.score_cap:
+                import numpy as np
+                cap_value = np.percentile(df_test[args.weight_key], 95)
+                df_test[args.weight_key] = np.minimum(df_test[args.weight_key], cap_value)
+
+            df_test[args.weight_key] = (((df_test[args.weight_key] - df_test[args.weight_key].min()) / (df_test[args.weight_key].max() - df_test[args.weight_key].min())) * (args.score_scale - 1) + 1).astype(int)
         else:
             args.weight_key = "score"
             df_test[args.weight_key] = 1
