@@ -173,7 +173,7 @@ def load_model(model_name, pretrained):
     return model, preprocess, tokenizer
 
 
-def get_test_queries(df_test, top_q=2000, weight_key=None, query_key="query"):
+def get_test_queries(df_test, top_q=2000, weight_key=None, query_key="query", fix_top_queries=False):
     _df_temp_ = df_test[[query_key, weight_key]]
     _df_temp_ = _df_temp_.groupby(query_key).sum()
     if top_q == -1:
@@ -183,7 +183,11 @@ def get_test_queries(df_test, top_q=2000, weight_key=None, query_key="query"):
     assert top_q <= 20000, "Error: Please choose smaller query sample size (<20000)."
 
     print(f"Sampling {top_q} queries.")
-    sampled_data = _df_temp_.sample(n=top_q, weights=_df_temp_[weight_key], random_state=1, replace=False)
+    if fix_top_queries:
+        sampled_data = _df_temp_.sort_values(by=[weight_key], ascending=False)[:top_q]
+    else:
+        sampled_data = _df_temp_.sample(n=top_q, weights=_df_temp_[weight_key], random_state=1, replace=False)
+
     # sampled_data = _df_temp_.sample(n=top_q, random_state=1)
     sampled_data = sampled_data.sort_values(by=weight_key, ascending=False)
     test_queries = list(sampled_data.index)
@@ -259,6 +263,8 @@ def run_eval(argv):
 
     parser.add_argument("--score-cap", **configure_as_flag_arg(), default=False)
     parser.add_argument("--score-scale", type=int, default=100)
+
+    parser.add_argument("--fix-top-queries", **configure_as_flag_arg(), default=False)
 
 
 
@@ -350,7 +356,7 @@ def run_eval(argv):
                 gt_results = json.load(f)
                 test_queries = list(gt_results.keys())
         else:
-            test_queries = get_test_queries(df_test, top_q=args.top_q, weight_key=args.weight_key, query_key=query_key)
+            test_queries = get_test_queries(df_test, top_q=args.top_q, weight_key=args.weight_key, query_key=query_key, fix_top_queries=args.fix_top_queries)
 
         df_test = df_test.set_index(query_key)
         df_test[args.doc_id_key] = df_test[args.doc_id_key].astype(str)
