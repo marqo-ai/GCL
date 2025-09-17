@@ -133,6 +133,29 @@ def calculate_mean_rbp(qrels, retrieved_results, p=0.9):
     mean_RBP = total_RBP / num_queries if num_queries > 0 else 0
     return mean_RBP
 
+# ───────────────────────────────────────────────────────────
+# 1.  NEW METRIC: cumulative gain at k  (CG@k)
+# ───────────────────────────────────────────────────────────
+def calculate_mean_cg(qrels, retrieved_results, k=10):
+    """
+    Mean Cumulative Gain at k.
+    For each query, sum the raw relevance grades of the top-k retrieved docs
+    (no discount), then average across queries.
+    """
+    total_cg = 0.0
+    num_queries = len(qrels)
+
+    for query, docs_qrels in qrels.items():
+        docs_retrieved = retrieved_results.get(query, {})
+        # highest-scoring docs first
+        top_docs = sorted(docs_retrieved.items(),
+                          key=lambda x: x[1],
+                          reverse=True)[:k]
+        total_cg += sum(docs_qrels.get(doc_id, 0) for doc_id, _ in top_docs)
+
+    return total_cg / num_queries if num_queries else 0
+# ───────────────────────────────────────────────────────────
+
 
 logging.basicConfig(level=logging.INFO)
 
@@ -437,6 +460,8 @@ def run_eval(argv):
     mean_rbp_7 = calculate_mean_rbp(gt_results, retrieval_results, p=0.7)
     mean_rbp_8 = calculate_mean_rbp(gt_results, retrieval_results, p=0.8)
     mean_rbp_9 = calculate_mean_rbp(gt_results, retrieval_results, p=0.9)
+    mean_cg_10 = calculate_mean_cg(gt_results, retrieval_results, k=10)  # <── new
+    mean_cg_30 = calculate_mean_cg(gt_results, retrieval_results, k=30)  # <── new
 
     output_results["summary"] = {
         f"mAP@{ks[-1]}": [output_results['mAP'][f"MAP@{ks[-1]}"]],
@@ -446,6 +471,8 @@ def run_eval(argv):
         'mRBP7': mean_rbp_7,
         'mRBP8': mean_rbp_8,
         'mRBP9': mean_rbp_9,
+        'CG@10': mean_cg_10,
+        'CG@30': mean_cg_30,
     }
 
     logging.info(output_results["summary"])
