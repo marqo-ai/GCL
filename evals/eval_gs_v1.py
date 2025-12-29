@@ -202,7 +202,7 @@ def calc_all_features_mf(model_name, model, tokenizer, doc_meta_list, preprocess
 
 
 def load_model(model_name, pretrained):
-    model, _, preprocess = open_clip.create_model_and_transforms(model_name, pretrained=pretrained, load_weights_only=False)
+    model, _, preprocess = open_clip.create_model_and_transforms(model_name, pretrained=pretrained)
     model = model.to('cuda')
     model.eval()
     tokenizer = open_clip.get_tokenizer(model_name)
