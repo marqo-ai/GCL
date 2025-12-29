@@ -133,16 +133,16 @@ def calculate_mean_rbp(qrels, retrieved_results, p=0.9):
     mean_RBP = total_RBP / num_queries if num_queries > 0 else 0
     return mean_RBP
 
-def calculate_mean_sliging_window_ndcg(qrels, retrieved_results, start=0, k=10):
-    total_ndcg = 0.0
-    num_queries = len(qrels)
+# def calculate_mean_sliging_window_ndcg(qrels, retrieved_results, start=0, k=10):
+#     total_ndcg = 0.0
+#     num_queries = len(qrels)
 
-    for query, docs_qrels in qrels.items():
-        docs_retrieved_results = retrieved_results.get(query, {})
-        total_ndcg += calculate_ndcg_for_window(docs_qrels, docs_retrieved_results, start=start, k=k)
+#     for query, docs_qrels in qrels.items():
+#         docs_retrieved_results = retrieved_results.get(query, {})
+#         total_ndcg += calculate_ndcg_for_window(docs_qrels, docs_retrieved_results, start=start, k=k)
 
-    mean_ndcg = total_ndcg / num_queries if num_queries > 0 else 0
-    return mean_ndcg
+#     mean_ndcg = total_ndcg / num_queries if num_queries > 0 else 0
+#     return mean_ndcg
 
 
 def calculate_ndcg_for_window(qrels, results, start, k):
@@ -461,12 +461,12 @@ def run_eval(argv):
     mean_rbp_9 = calculate_mean_rbp(gt_results, retrieval_results, p=0.9)
 
     logging.info("Measuring window ndcg")
-    ndcg_window_0_10 = calculate_mean_sliging_window_ndcg(gt_results, retrieval_results, 0, 10)
-    ndcg_window_10_20 = calculate_mean_sliging_window_ndcg(gt_results, retrieval_results, 10, 10)
-    ndcg_window_20_30 = calculate_mean_sliging_window_ndcg(gt_results, retrieval_results, 20, 10)
-    ndcg_window_30_40 = calculate_mean_sliging_window_ndcg(gt_results, retrieval_results, 30, 10)
-    ndcg_window_40_50 = calculate_mean_sliging_window_ndcg(gt_results, retrieval_results, 40, 10)
-    ndcg_window_50_60 = calculate_mean_sliging_window_ndcg(gt_results, retrieval_results, 50, 10)
+    ndcg_window_0_10 = calculate_ndcg_for_window(gt_results, retrieval_results, 0, 10)
+    ndcg_window_10_20 = calculate_ndcg_for_window(gt_results, retrieval_results, 10, 10)
+    ndcg_window_20_30 = calculate_ndcg_for_window(gt_results, retrieval_results, 20, 10)
+    ndcg_window_30_40 = calculate_ndcg_for_window(gt_results, retrieval_results, 30, 10)
+    ndcg_window_40_50 = calculate_ndcg_for_window(gt_results, retrieval_results, 40, 10)
+    ndcg_window_50_60 = calculate_ndcg_for_window(gt_results, retrieval_results, 50, 10)
 
     output_results["summary"] = {
         f"mAP@{ks[-1]}": [output_results['mAP'][f"MAP@{ks[-1]}"]],
