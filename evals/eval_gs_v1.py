@@ -167,7 +167,7 @@ def calculate_ndcg_for_window(qrels, results, start, k):
         return 0.0
 
     metrics, *_ = EvaluateRetrieval.evaluate(qrels, results_window, k_values=[k])
-    return metrics[f"NDCG@ {k}"]
+    return metrics[f"NDCG@{k}"]
 
 
 logging.basicConfig(level=logging.INFO)
